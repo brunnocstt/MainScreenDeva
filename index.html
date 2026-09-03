@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://iueakatarwkvaoomhhah.supabase.co; img-src 'self' data: blob:; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; upgrade-insecure-requests;">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Portal Deva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<style>
+  :root{
+    --canvas:#FFFFFF; --surface:#FFFFFF; --surface-2:#F1F5F9;
+    --ink:#0F172A; --ink-soft:#334155; --muted:#64748B; --muted-2:#94A3B8;
+    --line:#E2E8F0; --line-soft:#F1F5F9;
+    --accent:#1955FF; --accent-hover:#123FCB; --accent-ink:#FFFFFF;
+    --accent-soft:#EFF6FF; --accent-tint-10:#1955FF10;
+    --good:#059669; --good-soft:#ECFDF5;
+    --warn:#D97706; --warn-soft:#FFFBEB;
+    --neutral-status:#64748B; --neutral-status-soft:#F1F5F9;
+    --sidebar-bg:#0A0A0B; --sidebar-hover:#18181B;
+    --sidebar-text:#71717A; --sidebar-text-hover:#D4D4D8;
+    --sidebar-active-tint:rgba(25,85,255,.14); --sidebar-line:rgba(255,255,255,.07);
+    --sidebar-popup-bg:#18181B; --sidebar-popup-border:rgba(255,255,255,.08);
+    --badge-red:#EF4444;
+    --shadow-card: 0 1px 2px rgba(15,23,42,.04), 0 10px 24px -16px rgba(15,23,42,.18);
+    --shadow-lift: 0 6px 14px rgba(15,23,42,.06), 0 22px 40px -18px rgba(15,23,42,.24);
+    --font-body:'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --r-btn:12px; --r-input:12px; --r-card:16px; --r-login:24px;
+  }
+  :root{ color-scheme: light; }
+  *,*::before,*::after{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ background:var(--canvas); color:var(--ink); font-family:var(--font-body); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  h1,h2,p{ margin:0; }
+  button, input{ font-family:inherit; color:inherit; }
+  a{ color:inherit; }
+  svg{ display:block; }
+  ::selection{ background:var(--accent-soft); color:var(--ink); }
+  *:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
+  .logo-mark{ color:var(--ink); }
+
+  .login-shell{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:48px 20px; background:var(--canvas); }
+  .login-card{ width:100%; max-width:400px; background:var(--surface); border:1px solid var(--line-soft); border-radius:var(--r-login); box-shadow:var(--shadow-lift); padding:40px 36px; text-align:center; }
+  .login-card .logo-mark{ width:164px; height:auto; margin:0 auto 22px; }
+  .badge{ display:inline-flex; align-items:center; gap:6px; background:var(--accent-soft); color:var(--accent); padding:6px 14px; border-radius:999px; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; margin-bottom:22px; }
+  .login-card h1{ font-size:1.75rem; font-weight:800; letter-spacing:-.01em; margin-bottom:8px; text-wrap:balance; }
+  .login-card > p.lede{ color:var(--muted); font-size:.9rem; max-width:30ch; margin:0 auto 28px; }
+  .field{ margin-bottom:16px; text-align:left; }
+  .field label{ display:block; font-size:.8rem; font-weight:600; color:var(--ink-soft); margin-bottom:6px; }
+  .field-control{ position:relative; }
+  .field-control svg.leading{ position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--muted-2); }
+  .field input, .field select{ width:100%; padding:11px 13px; border-radius:var(--r-input); border:1px solid var(--line); background:var(--canvas); color:var(--ink); font-size:.9rem; }
+  .field-control input{ padding-left:38px; }
+  .field input::placeholder{ color:var(--muted-2); }
+  .field-pass input{ padding-right:40px; }
+  .eye-toggle{ position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--muted); padding:6px; display:flex; }
+  .login-error{ background:#FEF2F2; border:1px solid #FECACA; color:#B91C1C; font-size:.8rem; font-weight:600; border-radius:10px; padding:10px 12px; margin-bottom:16px; text-align:left; }
+  .ts-wrap{ display:flex; justify-content:center; margin-bottom:16px; }
+
+  .modal-overlay{ position:fixed; inset:0; background:rgba(15,10,8,.45); z-index:300; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .modal-card{ width:100%; max-width:420px; max-height:calc(100vh - 40px); overflow-y:auto; background:var(--surface); border-radius:20px; box-shadow:var(--shadow-lift); padding:24px; }
+  .modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .modal-head h2{ font-size:1.1rem; font-weight:800; color:var(--ink); }
+  .modal-close{ all:unset; box-sizing:border-box; width:30px; height:30px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted); }
+  .modal-close:hover{ background:var(--surface-2); color:var(--ink); }
+  .modal-note{ font-size:.76rem; color:var(--muted-2); line-height:1.5; margin:4px 0 18px; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:10px; }
+  .modal-actions .btn{ width:auto; padding:11px 20px; }
+  .senha-box{ background:var(--surface-2); border-radius:12px; padding:16px; text-align:center; margin:8px 0 18px; }
+  .senha-box .valor{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:1.15rem; font-weight:700; letter-spacing:.03em; color:var(--ink); margin:6px 0; word-break:break-all; }
+
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:var(--r-btn); border:1px solid transparent; cursor:pointer; font-weight:700; font-size:.88rem; padding:12px 18px; transition:background .15s ease, border-color .15s ease, transform .1s ease, color .15s ease; }
+  .btn:active{ transform:translateY(1px); }
+  .btn:disabled{ opacity:.55; cursor:not-allowed; }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); }
+  .btn-primary:hover{ background:var(--accent-hover); }
+  .btn-block{ width:100%; }
+  .btn-ghost{ background:transparent; border-color:var(--line); color:var(--ink-soft); }
+  .btn-ghost:hover{ border-color:var(--muted-2); }
+  .btn-outline-neutral{ background:transparent; border-color:var(--line); color:var(--muted); cursor:not-allowed; }
+
+  .toast{ position:fixed; bottom:20px; right:20px; background:var(--ink); color:#fff; padding:12px 18px; border-radius:10px; font-size:.83rem; font-weight:600; box-shadow:var(--shadow-lift); z-index:500; }
+
+  .shell{ display:flex; min-height:100vh; background:var(--canvas); }
+  .sidebar{ width:56px; flex-shrink:0; height:100vh; position:sticky; top:0; background:var(--sidebar-bg); display:flex; flex-direction:column; overflow:hidden; transition:width .24s cubic-bezier(.4,0,.2,1); }
+  .sidebar.is-expanded{ width:240px; }
+  .sidebar-head{ height:64px; border-bottom:1px solid var(--sidebar-line); display:flex; align-items:center; flex-shrink:0; }
+  .menu-toggle{ all:unset; box-sizing:border-box; width:28px; height:28px; margin-left:14px; flex-shrink:0; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#A1A1AA; transition:background .15s, color .15s; }
+  .menu-toggle:hover{ background:var(--sidebar-hover); color:#fff; }
+  .sidebar-logo{ margin-left:14px; overflow:hidden; white-space:nowrap; opacity:0; transition:opacity .18s ease; }
+  .is-expanded .sidebar-logo{ opacity:1; }
+  .sidebar-logo svg{ width:110px; height:auto; color:#fff; }
+  .side-nav{ flex:1; padding-top:12px; padding-bottom:8px; overflow-y:auto; overflow-x:hidden; }
+  .nav-btn{ all:unset; box-sizing:border-box; width:100%; display:block; height:40px; padding-left:52px; padding-right:10px; border-radius:9px; cursor:pointer; text-align:left; position:relative; font-size:13px; font-weight:500; margin-bottom:2px; line-height:40px; white-space:nowrap; overflow:hidden; color:var(--sidebar-text); background:transparent; transition:background .15s, color .15s; }
+  .nav-btn:hover{ background:var(--sidebar-hover); color:var(--sidebar-text-hover); }
+  .nav-btn.is-active{ background:var(--sidebar-active-tint); color:#fff; }
+  .nav-bar{ position:absolute; left:0; top:50%; transform:translateY(-50%); width:3px; height:22px; border-radius:0 4px 4px 0; background:var(--accent); opacity:0; }
+  .nav-btn.is-active .nav-bar{ opacity:1; }
+  .nav-icon{ position:absolute; left:14px; top:50%; transform:translateY(-50%); width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:inherit; }
+  .nav-btn.is-active .nav-icon{ color:var(--accent); }
+  .nav-label{ opacity:0; transition:opacity .18s ease; flex:1; }
+  .is-expanded .nav-label{ opacity:1; }
+  .avatar{ border-radius:999px; background:var(--accent); color:#fff; font-weight:700; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; letter-spacing:-.02em; line-height:1; }
+  .user-footer{ padding:8px; border-top:1px solid var(--sidebar-line); position:relative; flex-shrink:0; }
+  .user-footer-btn{ all:unset; box-sizing:border-box; width:100%; height:46px; position:relative; border-radius:9px; cursor:pointer; background:transparent; }
+  .user-footer-btn.is-open{ background:var(--sidebar-hover); }
+  .user-footer-avatar{ position:absolute; left:6px; top:50%; transform:translateY(-50%); }
+  .user-footer-text{ position:absolute; left:44px; right:8px; top:50%; transform:translateY(-50%); min-width:0; text-align:left; opacity:0; transition:opacity .18s ease; }
+  .is-expanded .user-footer-text{ opacity:1; }
+  .user-footer-text .name{ font-size:12.5px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .user-footer-text .sub{ font-size:10.5px; color:var(--sidebar-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+  .user-popup{ position:fixed; width:212px; background:var(--sidebar-popup-bg); border-radius:12px; border:1px solid var(--sidebar-popup-border); box-shadow:0 16px 40px rgba(0,0,0,.4); padding:6px; z-index:200; }
+  .user-popup button{ all:unset; box-sizing:border-box; width:100%; display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; cursor:pointer; text-align:left; color:#D4D4D8; font-size:13px; font-weight:500; }
+  .user-popup button:hover{ background:#27272A; }
+  .user-popup button.danger:hover{ color:#FCA5A5; }
+  main.content{ flex:1; min-width:0; padding:28px 40px 64px; background:var(--canvas); }
+  .page-head{ margin-bottom:26px; }
+  .page-head h1{ font-size:1.5rem; font-weight:800; letter-spacing:-.01em; }
+  .page-head .sub{ color:var(--muted); font-size:.88rem; margin-top:4px; }
+
+  .settings-layout{ display:flex; gap:20px; align-items:flex-start; }
+  .settings-content{ flex:1; min-width:0; }
+  .gestao-title{ font-size:1.35rem; font-weight:800; color:var(--ink); margin:0 0 3px; }
+  .gestao-sub{ font-size:.8rem; color:var(--muted); margin:0 0 16px; }
+  .gestao-toolbar{ display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; margin-bottom:14px; background:var(--surface); border:1px solid var(--line-soft); border-radius:14px; padding:14px 16px; }
+  .gestao-search{ flex:1; min-width:180px; display:flex; align-items:center; gap:8px; border:1.5px solid var(--line); border-radius:9px; padding:8px 12px; }
+  .gestao-search svg{ color:var(--muted-2); flex-shrink:0; }
+  .gestao-search input{ border:none; outline:none; background:transparent; font-size:.82rem; color:var(--ink-soft); width:100%; }
+  .gestao-search input::placeholder{ color:var(--muted-2); }
+  .gestao-filter{ display:flex; flex-direction:column; gap:4px; }
+  .gestao-filter span{ font-size:.6rem; font-weight:700; color:var(--muted-2); text-transform:uppercase; letter-spacing:.06em; padding-left:3px; }
+  .gestao-filter select{ border:1.5px solid var(--line); border-radius:9px; padding:7px 10px; font-size:.78rem; font-weight:600; color:var(--ink-soft); background:var(--surface); }
+  .gestao-tabs{ display:flex; gap:8px; margin-bottom:14px; }
+  .gestao-tab{ all:unset; box-sizing:border-box; padding:7px 14px; border-radius:9px; cursor:pointer; font-size:.78rem; font-weight:700; border:1.5px solid var(--line); background:var(--surface); color:var(--muted); }
+  .gestao-tab.is-active{ border-color:var(--accent); background:var(--accent-tint-10); color:var(--accent); }
+  .gestao-tab.is-active.inativos{ border-color:#DC2626; background:#FEF2F2; color:#B91C1C; }
+  .gestao-table-card{ background:var(--surface); border:1px solid var(--line-soft); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-card); }
+  .table-wrap{ overflow-x:auto; }
+  table.pessoas{ width:100%; table-layout:fixed; border-collapse:collapse; font-size:.82rem; }
+  table.pessoas thead tr{ background:var(--surface-2); }
+  table.pessoas thead th{ text-align:left; font-size:.63rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted-2); padding:10px 12px; }
+  table.pessoas th:nth-child(1), table.pessoas td:nth-child(1){ width:26%; }
+  table.pessoas th:nth-child(2), table.pessoas td:nth-child(2){ width:16%; }
+  table.pessoas th:nth-child(3), table.pessoas td:nth-child(3){ width:14%; }
+  table.pessoas th:nth-child(4), table.pessoas td:nth-child(4){ width:22%; }
+  table.pessoas th:nth-child(5), table.pessoas td:nth-child(5){ width:22%; }
+  table.pessoas tbody tr{ border-top:1px solid var(--line-soft); }
+  table.pessoas tbody tr:hover{ background:var(--surface-2); }
+  table.pessoas tbody td{ padding:10px 12px; color:var(--ink-soft); vertical-align:middle; overflow:hidden; }
+  .gestao-user{ display:flex; align-items:center; gap:8px; min-width:0; }
+  .gestao-user .name{ font-size:.83rem; font-weight:700; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .gestao-user .email{ font-size:.71rem; color:var(--muted-2); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .gestao-cargo{ font-size:.76rem; color:var(--muted); line-height:1.35; }
+  .gestao-actions{ display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
+  .gestao-actions button{ all:unset; box-sizing:border-box; width:26px; height:26px; border-radius:7px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted); flex-shrink:0; }
+  .gestao-actions button:hover{ background:var(--surface-2); }
+  .gestao-actions button.danger{ color:#DC2626; }
+  .gestao-actions button.good{ color:var(--good); }
+  .gestao-actions button:disabled{ opacity:.35; cursor:not-allowed; }
+  .gestao-actions button:disabled:hover{ background:none; }
+  .gestao-table-foot{ padding:10px 16px; border-top:1px solid var(--line-soft); font-size:.76rem; color:var(--muted-2); font-weight:500; }
+
+  .app-pill{ display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:.65rem; font-weight:700; border:1.5px solid var(--line); color:var(--muted-2); background:var(--surface); cursor:pointer; margin:2px 3px 2px 0; }
+  .app-pill.on{ border-color:var(--good); color:var(--good); background:var(--good-soft); }
+  .app-pill.disabled{ cursor:not-allowed; opacity:.5; }
+  .badge-bloqueado{ display:inline-flex; align-items:center; gap:4px; font-size:.65rem; font-weight:700; color:#B91C1C; background:#FEF2F2; border-radius:999px; padding:3px 9px; }
+  .criar-login-btn{ all:unset; box-sizing:border-box; font-size:.72rem; font-weight:700; color:var(--accent); cursor:pointer; padding:4px 8px; border-radius:7px; }
+  .criar-login-btn:hover{ background:var(--accent-soft); }
+  .criar-login-btn:disabled{ color:var(--muted-2); cursor:not-allowed; }
+
+  .app-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(226px,1fr)); gap:22px; max-width:1180px; }
+  .app-card{ min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-card); display:flex; flex-direction:column; transition:box-shadow .18s ease, transform .18s ease; }
+  .app-card:hover{ box-shadow:var(--shadow-lift); transform:translateY(-2px); }
+  .app-visual{ height:144px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:var(--accent); }
+  .app-visual svg{ width:50px; height:50px; color:#fff; }
+  .app-card.is-muted .app-visual{ background:var(--surface-2); }
+  .app-card.is-muted .app-visual svg{ color:var(--muted-2); }
+  .app-body{ padding:16px; display:flex; flex-direction:column; gap:12px; flex:1; min-width:0; }
+  .app-top-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .app-name{ font-weight:700; font-size:.94rem; line-height:1.3; min-width:0; }
+  .status-pill{ display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; font-size:.66rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; flex-shrink:0; }
+  .status-pill .dot{ width:6px; height:6px; border-radius:999px; background:currentColor; }
+  .status-pill.good{ background:var(--good-soft); color:var(--good); }
+  .status-pill.warn{ background:var(--warn-soft); color:var(--warn); }
+  .status-pill.neutral{ background:var(--neutral-status-soft); color:var(--neutral-status); }
+  .app-note{ font-size:.76rem; color:var(--muted); }
+  [hidden]{ display:none !important; }
+  @media (max-width:600px){ .sidebar.is-expanded{ width:220px; } main.content{ padding:24px 18px 48px; } }
+</style>
+</head>
+<body>
+
+<!-- shared icon defs -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-logo-ivecodeva" viewBox="0 0 183 15" fill="currentColor">
+      <path d="M0.255224 0.551577H3.85268C4.00215 0.566281 4.07688 0.650527 4.07688 0.804314C4.07688 5.28925 4.07688 9.76194 4.07688 14.2224C4.07688 14.277 4.05502 14.3293 4.0161 14.3679C3.97718 14.4065 3.9244 14.4282 3.86936 14.4282L0.175548 14.4292C0.161522 14.4292 0.147684 14.4263 0.134922 14.4208C0.122159 14.4152 0.110752 14.4071 0.101431 14.397C0.0364746 14.326 0.00044619 14.2334 0.00044619 14.1372V0.84659C-0.00696552 0.653591 0.0779603 0.555253 0.255224 0.551577Z"/>
+      <path d="M6.88079 0.551577H10.9785C13.0977 4.13769 15.2285 7.74402 17.3711 11.3706C17.4131 11.441 17.4598 11.498 17.511 11.5415C17.5188 11.5479 17.5279 11.5526 17.5377 11.5552C17.5474 11.5579 17.5576 11.5584 17.5676 11.5569C17.5776 11.5553 17.5871 11.5516 17.5956 11.5462C17.604 11.5407 17.6112 11.5334 17.6166 11.525C19.9353 7.90455 22.2456 4.29178 24.5475 0.686676C24.5877 0.622956 24.6667 0.577923 24.7847 0.551577H27.78L28.964 0.5865C28.9998 0.587726 29.018 0.606107 29.0186 0.641643C29.0236 0.891011 28.96 1.11924 28.8278 1.32633C26.4264 5.08706 24.029 8.85025 21.6356 12.6159C21.3102 13.1281 21.0646 13.4718 20.8991 13.647C19.2361 15.4079 15.9277 15.4686 14.236 13.7197C14.0062 13.4825 13.6931 13.0249 13.2966 12.3466C11.1416 8.66184 8.98232 4.97984 6.81872 1.3006C6.70445 1.10637 6.6501 0.890398 6.65566 0.652672C6.65628 0.618973 6.67326 0.598142 6.70662 0.590177L6.88079 0.551577Z"/>
+      <path d="M34.7689 0.551577H46.8352C46.9859 0.565056 47.0615 0.65696 47.0621 0.82729C47.0665 1.73102 47.0658 2.63505 47.0603 3.53939C47.0584 3.81939 46.9207 3.95909 46.6471 3.95848C42.6021 3.95357 38.5569 3.95143 34.5113 3.95204C34.4798 3.95204 34.4641 3.96767 34.4641 3.99891V10.8219C34.4641 10.8767 34.486 10.9293 34.5251 10.9681C34.5642 11.0069 34.6173 11.0287 34.6725 11.0287H46.8787C46.9278 11.0287 46.975 11.0481 47.0097 11.0825C47.0445 11.117 47.064 11.1637 47.064 11.2125V14.1985C47.064 14.351 46.9871 14.4273 46.8333 14.4273C43.2025 14.4301 39.5615 14.3814 35.9316 14.4494C35.2608 14.4622 34.7717 14.4481 34.4641 14.4071C32.7816 14.1856 30.9936 13.1076 30.5109 11.4119C30.4244 11.1086 30.3824 10.635 30.3849 9.99109C30.391 8.14564 30.3917 6.30143 30.3867 4.45844C30.3802 2.2031 32.6288 0.691271 34.7689 0.551577Z"/>
+      <path d="M55.0888 0.551565H67.0392C67.4404 0.543294 67.4497 0.926536 67.4506 1.21787C67.4518 1.93779 67.4487 2.65771 67.4413 3.37763C67.4395 3.53815 67.4083 3.69194 67.3478 3.83899C67.3358 3.86679 67.3137 3.88912 67.2857 3.90148C67.2097 3.93457 67.1399 3.95111 67.0763 3.95111C63.0159 3.95173 58.9701 3.95203 54.9387 3.95203C54.9145 3.95203 54.8905 3.95676 54.8682 3.96595C54.8458 3.97514 54.8255 3.98862 54.8084 4.0056C54.7912 4.02258 54.7776 4.04274 54.7684 4.06493C54.7591 4.08712 54.7543 4.1109 54.7543 4.13492V10.8219C54.7543 10.8765 54.7763 10.9289 54.8154 10.9675C54.8545 11.0061 54.9075 11.0278 54.9628 11.0278L67.2273 11.0296C67.2388 11.0296 67.2502 11.0323 67.2605 11.0376C67.2708 11.0429 67.2797 11.0505 67.2866 11.0599C67.3824 11.1874 67.4318 11.3301 67.4349 11.4882C67.4503 12.2921 67.4515 13.0962 67.4386 13.9007C67.4361 14.0508 67.4034 14.1926 67.3404 14.3262C67.3261 14.3556 67.3039 14.3755 67.2736 14.3859C67.194 14.4135 67.1128 14.4273 67.03 14.4273C63.4298 14.4301 59.8212 14.385 56.2219 14.4503C55.5604 14.4619 55.0712 14.446 54.7543 14.4025C52.8718 14.1442 50.9021 12.7988 50.6992 10.7759C50.6745 10.5278 50.664 10.1142 50.6677 9.53523C50.6782 7.88095 50.6822 6.22667 50.6798 4.57239C50.677 2.2472 52.9376 0.681151 55.0888 0.551565Z"/>
+      <path d="M74.9784 0.551577H84.8481C85.1056 0.575472 85.3644 0.585888 85.6244 0.582824C85.9407 0.579148 86.361 0.687289 86.8853 0.907247C88.3983 1.54231 89.5369 2.65435 89.6823 4.34264V10.7125C89.5903 11.5452 89.2645 12.2547 88.7049 12.841C87.7025 13.8918 86.4456 14.4166 84.9342 14.4154C80.2723 14.4111 77.1454 14.4194 75.5538 14.4402C73.6453 14.465 71.8674 13.6333 70.9502 11.9404C70.6481 11.3844 70.5981 10.7796 70.5981 10.0664C70.5969 8.20446 70.5981 6.34248 70.6018 4.48049C70.6037 3.42911 71.1855 2.3768 72.0045 1.72612C72.8723 1.03622 73.8636 0.644706 74.9784 0.551577ZM74.6885 10.8219C74.6894 11.0131 74.8487 11.0351 74.9979 11.0342C78.4962 11.0305 81.993 11.0284 85.4882 11.0278C85.4949 11.0278 85.5012 11.0251 85.5059 11.0202C85.5106 11.0154 85.5133 11.0089 85.5133 11.002V4.0899C85.5133 4.05334 85.4986 4.01827 85.4726 3.99242C85.4465 3.96657 85.4111 3.95204 85.3743 3.95204H74.6977C74.6908 3.95204 74.6842 3.95475 74.6794 3.95958C74.6745 3.96441 74.6718 3.97095 74.6718 3.97778C74.6724 6.25762 74.678 8.539 74.6885 10.8219Z"/>
+      <path d="M46.8024 5.89153H36.6206C36.5157 5.89153 36.4307 5.97588 36.4307 6.07994V8.91979C36.4307 9.02384 36.5157 9.10819 36.6206 9.10819H46.8024C46.9073 9.10819 46.9923 9.02384 46.9923 8.91979V6.07994C46.9923 5.97588 46.9073 5.89153 46.8024 5.89153Z"/>
+      <path d="M177.201 12.4415C177.18 12.405 177.151 12.3746 177.115 12.3534C177.079 12.3323 177.038 12.3211 176.996 12.3211C173.663 12.3247 170.333 12.3257 167.007 12.3238C166.872 12.3238 166.765 12.4093 166.684 12.5802C166.54 12.8866 166.263 13.4083 165.853 14.1454C165.675 14.467 165.497 14.5222 165.117 14.5249C164.133 14.5323 163.149 14.5357 162.166 14.535C161.842 14.535 161.138 14.5562 161.348 14.0011C161.396 13.8755 161.478 13.711 161.596 13.5076C163.638 9.99435 165.672 6.47686 167.699 2.95508C168.108 2.24374 168.55 1.64575 169.024 1.16111C170.01 0.151076 171.555 -0.183456 172.934 0.0931768C174.353 0.377162 175.305 1.31183 176.05 2.59298C178.246 6.36841 180.44 10.1451 182.632 13.923C182.656 13.9665 182.686 14.0596 182.72 14.2024C182.726 14.2305 182.723 14.2575 182.709 14.2832C182.631 14.4272 182.521 14.501 182.379 14.5047C181.2 14.5366 180.021 14.5485 178.842 14.5406C178.629 14.5387 178.317 14.5112 178.211 14.3108C177.868 13.6632 177.531 13.0401 177.201 12.4415ZM175.147 8.72117C174.185 6.98785 173.221 5.25637 172.272 3.5157C172.192 3.37049 172.103 3.23999 172.005 3.12419C172.001 3.11913 171.995 3.1152 171.989 3.11275C171.983 3.1103 171.976 3.1094 171.97 3.11013C171.963 3.11085 171.957 3.11318 171.951 3.11691C171.945 3.12064 171.941 3.12566 171.937 3.13154L168.68 9.02629C168.675 9.03479 168.673 9.04432 168.673 9.05398C168.673 9.06363 168.676 9.07308 168.681 9.0814C168.686 9.08972 168.693 9.09663 168.701 9.10147C168.71 9.10631 168.719 9.1089 168.729 9.10901L175.208 9.10993C175.222 9.10985 175.235 9.10638 175.247 9.09982C175.259 9.09326 175.27 9.08381 175.277 9.07233C175.285 9.06085 175.289 9.0477 175.291 9.03405C175.292 9.0204 175.289 9.00668 175.284 8.99413C175.246 8.90774 175.2 8.81675 175.147 8.72117Z"/>
+      <path d="M121.313 10.8947C120.86 13.0223 119.214 14.2584 117.075 14.445C116.611 14.4854 116.147 14.5066 115.681 14.5084C111.543 14.5237 107.405 14.5323 103.266 14.5341C102.985 14.5341 102.484 14.5452 102.483 14.2088C102.48 9.95056 102.474 5.69231 102.467 1.43407C102.467 1.16204 102.488 0.916346 102.532 0.697C102.539 0.658959 102.559 0.624646 102.59 0.599983C102.62 0.57532 102.658 0.561853 102.697 0.561901C107.238 0.560675 111.767 0.560368 116.283 0.560981C116.678 0.560981 117.071 0.588859 117.462 0.644614C119.343 0.912975 120.914 2.16104 121.309 4.03038C121.398 4.44701 121.445 4.86824 121.449 5.29406C121.463 6.63403 121.472 7.9743 121.476 9.31488C121.478 9.84732 121.423 10.3739 121.313 10.8947ZM106.764 11.0381H117.256C117.268 11.0381 117.28 11.0333 117.289 11.0246C117.297 11.016 117.302 11.0043 117.302 10.9921L117.301 4.06438C117.301 4.03708 117.29 4.0109 117.271 3.99159C117.251 3.97229 117.225 3.96145 117.198 3.96145H106.741C106.691 3.96145 106.644 3.98081 106.61 4.01528C106.575 4.04975 106.555 4.09651 106.555 4.14526V10.8313C106.555 10.8862 106.577 10.9387 106.616 10.9775C106.655 11.0163 106.708 11.0381 106.764 11.0381Z"/>
+      <path d="M127.864 10.9875C127.864 11.0009 127.869 11.0138 127.879 11.0233C127.888 11.0327 127.901 11.0381 127.915 11.0381C132.054 11.0368 136.183 11.039 140.302 11.0445C140.658 11.0445 140.652 11.3579 140.654 11.6125C140.658 12.2049 140.653 13.0627 140.641 14.1858C140.638 14.4266 140.434 14.5102 140.232 14.5121C136.659 14.5543 133.083 14.5286 129.508 14.5268C128.966 14.5268 128.425 14.4912 127.887 14.4202C125.913 14.1591 124.325 12.9212 123.887 10.9563C123.797 10.5565 123.765 9.983 123.77 9.61355C123.789 8.05117 123.792 6.48849 123.779 4.9255C123.773 4.14921 123.975 3.42623 124.384 2.75655C125.253 1.33479 126.866 0.568305 128.536 0.565548C132.519 0.558808 136.503 0.558196 140.487 0.563711C140.507 0.563719 140.527 0.570267 140.543 0.582367C140.56 0.594468 140.571 0.611467 140.577 0.630802C140.601 0.70984 140.616 0.801744 140.621 0.906515C140.676 1.96893 140.678 2.89563 140.625 3.68663C140.613 3.86186 140.506 3.94978 140.302 3.95039C136.199 3.95836 132.108 3.96264 128.027 3.96326C127.984 3.96326 127.942 3.9803 127.912 4.01063C127.881 4.04097 127.864 4.08211 127.864 4.12501V10.9875Z"/>
+      <path d="M153.957 14.99C153.124 14.99 152.259 14.997 151.516 14.6194C150.658 14.1835 150.063 13.4443 149.498 12.5573C147.095 8.78244 144.689 5.00915 142.281 1.23739C142.175 1.07073 142.124 0.88907 142.129 0.692394C142.13 0.676298 142.135 0.660649 142.144 0.647407C142.153 0.634165 142.166 0.623918 142.181 0.617952C142.26 0.586705 142.359 0.570161 142.479 0.568323C143.807 0.55178 145.152 0.550557 146.514 0.564649C146.567 0.565224 146.619 0.579118 146.664 0.605014C146.71 0.63091 146.748 0.667949 146.775 0.712614L153.249 11.345C153.259 11.3622 153.274 11.3763 153.292 11.3861C153.309 11.3959 153.329 11.4011 153.349 11.4011C153.369 11.4011 153.389 11.3959 153.407 11.3861C153.424 11.3763 153.439 11.3622 153.45 11.345L159.94 0.68688C159.966 0.64542 160.002 0.611187 160.044 0.587513C160.087 0.563838 160.135 0.551528 160.183 0.551781L164.363 0.570163C164.417 0.570322 164.468 0.590694 164.506 0.627095C164.545 0.663497 164.568 0.713169 164.571 0.76592C164.578 0.913886 164.523 1.06185 164.436 1.19879C162.141 4.79899 159.852 8.40318 157.569 12.0114C156.64 13.4791 155.791 14.7354 153.957 14.99Z"/>
+      <path d="M140.098 5.89145C140.195 5.89145 140.289 5.92979 140.357 5.99804C140.426 6.06629 140.465 6.15886 140.465 6.25539V8.69913C140.465 8.80808 140.42 8.91257 140.341 8.98962C140.262 9.06666 140.154 9.10994 140.042 9.10994H130.322C130.21 9.10994 130.102 9.06666 130.023 8.98962C129.944 8.91257 129.899 8.80808 129.899 8.69913V6.25539C129.899 6.15886 129.938 6.06629 130.007 5.99804C130.076 5.92979 130.169 5.89145 130.266 5.89145H140.098Z"/>
+    </symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></g></symbol>
+    <symbol id="i-trend" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></g></symbol>
+    <symbol id="i-kanban" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v14"/><path d="M12 3v8"/><path d="M19 3v18"/></g></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></g></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></g></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></g></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></g></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></g></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></g></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></g></symbol>
+    <symbol id="i-user-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 11 2 2 4-4"/><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></g></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></g></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></g></symbol>
+    <symbol id="i-power" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></g></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></g></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></g></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></g></symbol>
+  </defs>
+</svg>
+
+<!-- ================= LOGIN ================= -->
+<div id="login-shell" class="login-shell">
+  <div class="login-card">
+    <svg class="logo-mark" viewBox="0 0 183 15"><use href="#i-logo-ivecodeva"/></svg>
+    <span class="badge"><svg width="13" height="13"><use href="#i-grid"/></svg> Portal de aplicativos</span>
+    <h1>Bem-vindo</h1>
+    <p class="lede">Acesse com seu e-mail corporativo para ver os aplicativos liberados para o seu perfil.</p>
+
+    <div id="login-error" class="login-error" hidden></div>
+
+    <form id="login-form">
+      <div class="field">
+        <label for="f-email">E-mail corporativo</label>
+        <div class="field-control">
+          <svg class="leading" width="17" height="17"><use href="#i-mail"/></svg>
+          <input id="f-email" type="email" placeholder="nome.sobrenome@deva.com.br" autocomplete="username" required>
+        </div>
+      </div>
+      <div class="field field-pass">
+        <label for="f-pass">Senha</label>
+        <div class="field-control">
+          <svg class="leading" width="17" height="17"><use href="#i-lock"/></svg>
+          <input id="f-pass" type="password" placeholder="••••••••" autocomplete="current-password" required>
+          <button type="button" class="eye-toggle" id="eye-toggle" aria-label="Mostrar senha"><svg width="17" height="17"><use href="#i-eye"/></svg></button>
+        </div>
+      </div>
+      <div class="ts-wrap"><div class="cf-turnstile" data-sitekey="0x4AAAAAAD7cl8ffY5GysVNZ"></div></div>
+      <button type="submit" class="btn btn-primary btn-block" id="login-submit">Entrar</button>
+    </form>
+
+    <div class="login-note" style="margin-top:24px; padding:13px 14px; border-radius:12px; background:var(--surface-2); font-size:.8rem; color:var(--muted); line-height:1.5;">
+      Problemas de acesso? Entre em contato com <a href="mailto:bruno.cesar@deva.com.br" style="color:var(--accent); font-weight:600; text-decoration:none;">bruno.cesar@deva.com.br</a>
+    </div>
+  </div>
+</div>
+
+<!-- ================= APP SHELL ================= -->
+<div id="app-shell" class="shell" hidden>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <button class="menu-toggle" id="menu-toggle" aria-label="Expandir menu"><svg width="18" height="18"><use href="#i-menu"/></svg></button>
+      <div class="sidebar-logo"><svg viewBox="0 0 183 15"><use href="#i-logo-ivecodeva"/></svg></div>
+    </div>
+    <nav class="side-nav">
+      <button type="button" class="nav-btn is-active" id="nav-hub" title="Hub de apps">
+        <span class="nav-bar"></span>
+        <span class="nav-icon"><svg width="17" height="17"><use href="#i-grid"/></svg></span>
+        <span class="nav-label">Hub de apps</span>
+      </button>
+      <button type="button" class="nav-btn" id="nav-config" title="Configurações" hidden>
+        <span class="nav-icon"><svg width="17" height="17"><use href="#i-settings"/></svg></span>
+        <span class="nav-label">Configurações</span>
+      </button>
+    </nav>
+    <div class="user-footer">
+      <button class="user-footer-btn" id="user-footer-btn">
+        <span class="user-footer-avatar avatar" id="user-avatar" style="width:30px;height:30px;font-size:.7rem"></span>
+        <span class="user-footer-text">
+          <span class="name" id="user-name"></span>
+          <span class="sub" id="user-sub"></span>
+        </span>
+      </button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div id="view-hub">
+      <div class="page-head"><h1>Seus aplicativos</h1><p class="sub">Acesso centralizado aos sistemas internos da Deva.</p></div>
+      <div class="app-grid" id="app-grid"></div>
+    </div>
+
+    <div id="view-config" hidden>
+      <div class="page-head"><h1>Configurações</h1><p class="sub">Gerencie configurações do sistema</p></div>
+      <div class="settings-layout">
+        <div class="settings-content">
+          <h1 class="gestao-title">Gestão de Usuários</h1>
+          <p class="gestao-sub" id="gestao-sub">carregando…</p>
+          <div class="gestao-toolbar">
+            <div class="gestao-search"><svg width="14" height="14"><use href="#i-search"/></svg>
+              <input type="search" id="pessoas-search" placeholder="Buscar por nome ou e-mail...">
+            </div>
+            <div class="gestao-filter"><span>Filial</span><select id="pessoas-filial-filter"><option value="">Todas</option></select></div>
+          </div>
+          <div class="gestao-tabs" id="gestao-tabs"></div>
+          <div class="gestao-table-card">
+            <div class="table-wrap">
+              <table class="pessoas">
+                <thead><tr><th>Usuário</th><th>Filial</th><th>Status</th><th>Acesso a apps</th><th>Ações</th></tr></thead>
+                <tbody id="pessoas-tbody"></tbody>
+              </table>
+            </div>
+            <div class="gestao-table-foot" id="pessoas-foot"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="user-popup" id="user-popup" hidden>
+  <button class="danger" id="popup-logout"><svg width="14" height="14"><use href="#i-logout"/></svg> Sair</button>
+</div>
+
+<!-- modal: senha temporária exibida uma vez -->
+<div class="modal-overlay" id="senha-modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head"><h2>Senha temporária gerada</h2><button type="button" class="modal-close" id="senha-modal-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <p class="modal-note">Essa senha só aparece agora — copie e envie para <strong id="senha-modal-email"></strong> por um canal seguro (WhatsApp, presencial etc.). A pessoa deve trocá-la no primeiro acesso.</p>
+    <div class="senha-box">
+      <div class="valor" id="senha-modal-valor"></div>
+      <button type="button" class="btn btn-ghost" id="senha-modal-copy" style="margin-top:8px;"><svg width="14" height="14"><use href="#i-copy"/></svg> Copiar</button>
+    </div>
+    <div class="modal-actions"><button type="button" class="btn btn-primary" id="senha-modal-ok">Entendi</button></div>
+  </div>
+</div>
+
+<div id="toast-root"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  var SUPABASE_URL = 'https://iueakatarwkvaoomhhah.supabase.co';
+  var SUPABASE_ANON_KEY = 'sb_publishable_MpmQzxPjbmNIL2X8SE7uHg_LzydC1Gf';
+  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  var HUB_FN_URL = SUPABASE_URL + '/functions/v1/hub-manage-access';
+
+  // Apps do hub. `schema`/`table` só existem para apps já migrados para o
+  // projeto consolidado -- os demais mostram "Em breve" até serem migrados.
+  var APPS = [
+    { id:'topdealer', icon:'i-trend', name:'Top Dealer 2026', level:'Comercial',
+      url:'https://topdealerdeva.albusdata.com.br', schema:'topdealer', table:'perfis' },
+    { id:'ferramentaria', icon:'i-wrench', name:'Ferramentaria Deva', level:'Oficina',
+      url:'https://ferramentariadeva.albusdata.com.br', schema:null },
+    { id:'pm', icon:'i-kanban', name:'Project Management', level:'Coordenação',
+      url:'https://gestaoprojetosdeva.albusdata.com.br', schema:null },
+    { id:'padroes', icon:'i-clipboard', name:'Auditorias de Padrões', level:'Gerência',
+      url:'https://padroesdeva.albusdata.com.br', schema:null }
+  ];
+
+  function escapeHtml(s){
+    return String(s == null ? '' : s).replace(/[&<>"]+/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+  }
+  var AVATAR_COLORS = ['#1955FF','#7C3AED','#059669','#DB2777','#D97706','#0891B2'];
+  function corAvatar(nome){
+    var h = 0;
+    for (var i = 0; i < nome.length; i++) h = (h * 31 + nome.charCodeAt(i)) >>> 0;
+    return AVATAR_COLORS[h % AVATAR_COLORS.length];
+  }
+  function iniciais(nome){
+    var partes = (nome || '?').trim().split(/\s+/);
+    var a = partes[0] ? partes[0][0] : '';
+    var b = partes.length > 1 ? partes[partes.length - 1][0] : '';
+    return (a + b).toUpperCase();
+  }
+  function toast(msg){
+    var el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = msg;
+    document.getElementById('toast-root').appendChild(el);
+    setTimeout(function(){ el.remove(); }, 3500);
+  }
+
+  // ---------------- LOGIN ----------------
+  var loginShell = document.getElementById('login-shell');
+  var appShell = document.getElementById('app-shell');
+  var loginError = document.getElementById('login-error');
+  var loginSubmit = document.getElementById('login-submit');
+
+  document.getElementById('eye-toggle').addEventListener('click', function(){
+    var f = document.getElementById('f-pass');
+    var isPass = f.type === 'password';
+    f.type = isPass ? 'text' : 'password';
+  });
+
+  document.getElementById('login-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    loginError.hidden = true;
+    loginSubmit.disabled = true;
+    loginSubmit.textContent = 'Entrando…';
+    var email = document.getElementById('f-email').value.trim();
+    var password = document.getElementById('f-pass').value;
+    sb.auth.signInWithPassword({ email: email, password: password }).then(function(res){
+      loginSubmit.disabled = false;
+      loginSubmit.textContent = 'Entrar';
+      if (res.error) {
+        loginError.textContent = 'E-mail ou senha incorretos.';
+        loginError.hidden = false;
+      }
+      // sucesso: onAuthStateChange cuida da troca de tela
+    });
+  });
+
+  document.getElementById('popup-logout').addEventListener('click', function(){
+    sb.auth.signOut();
+  });
+
+  sb.auth.onAuthStateChange(function(event, session){
+    if (session) { showApp(session); } else { showLoginScreen(); }
+  });
+
+  function showLoginScreen(){
+    loginShell.hidden = false;
+    appShell.hidden = true;
+  }
+
+  var estadoUsuario = null; // { uid, nome, email, filialNome, hubAdmin }
+
+  function showApp(session){
+    loginShell.hidden = true;
+    appShell.hidden = false;
+    var uid = session.user.id;
+
+    sb.from('contas')
+      .select('hub_admin, pessoas(nome, email, filiais(nome))')
+      .eq('id', uid)
+      .maybeSingle()
+      .then(function(res){
+        var pessoaNome = session.user.email;
+        var filialNome = '';
+        var hubAdmin = false;
+        if (res.data) {
+          hubAdmin = !!res.data.hub_admin;
+          if (res.data.pessoas) {
+            pessoaNome = res.data.pessoas.nome || pessoaNome;
+            if (res.data.pessoas.filiais) filialNome = res.data.pessoas.filiais.nome || '';
+          }
+        }
+        estadoUsuario = { uid: uid, nome: pessoaNome, email: session.user.email, filialNome: filialNome, hubAdmin: hubAdmin };
+
+        document.getElementById('user-name').textContent = pessoaNome;
+        document.getElementById('user-sub').textContent = filialNome || session.user.email;
+        var av = document.getElementById('user-avatar');
+        av.textContent = iniciais(pessoaNome);
+        av.style.background = corAvatar(pessoaNome);
+
+        document.getElementById('nav-config').hidden = !hubAdmin;
+
+        renderAppGrid(uid);
+        if (hubAdmin) carregarGestaoUsuarios();
+      });
+  }
+
+  // ---------------- HUB DE APPS ----------------
+  function renderAppGrid(uid){
+    var grid = document.getElementById('app-grid');
+    grid.innerHTML = APPS.map(function(app){ return appCardHtml(app, 'checando'); }).join('');
+
+    APPS.forEach(function(app, idx){
+      if (!app.schema) { updateAppCard(idx, app, 'soon'); return; }
+      sb.schema(app.schema).from(app.table).select('ativo').eq('id', uid).maybeSingle().then(function(res){
+        if (res.error) { updateAppCard(idx, app, 'soon'); return; }
+        if (!res.data) { updateAppCard(idx, app, 'locked'); return; }
+        updateAppCard(idx, app, res.data.ativo === false ? 'locked' : 'active');
+      });
+    });
+  }
+
+  function appCardHtml(app, status){
+    return '<div class="app-card" id="app-card-' + app.id + '" data-status="' + status + '"></div>';
+  }
+
+  var statusMeta = {
+    active:   { pill:'good',    label:'Ativo' },
+    locked:   { pill:'warn',    label:'Sem acesso' },
+    soon:     { pill:'neutral', label:'Em breve' },
+    checando: { pill:'neutral', label:'Verificando' }
+  };
+
+  function updateAppCard(idx, app, status){
+    var meta = statusMeta[status];
+    var muted = status !== 'active' ? ' is-muted' : '';
+    var cta;
+    if (status === 'active') {
+      cta = '<a class="btn btn-primary btn-block" href="' + app.url + '" target="_blank" rel="noopener">Abrir aplicativo</a>' +
+            '<span style="font-size:.72rem;color:var(--muted-2);font-weight:600;text-align:center;">Nível: ' + app.level + '</span>';
+    } else if (status === 'locked') {
+      cta = '<button type="button" class="btn btn-ghost btn-block" disabled><svg width="14" height="14"><use href="#i-lock"/></svg> Sem acesso</button>' +
+            '<span style="font-size:.72rem;color:var(--muted-2);font-weight:600;text-align:center;">Fale com o admin do Hub</span>';
+    } else {
+      cta = '<button type="button" class="btn btn-outline-neutral btn-block" disabled>Em breve</button>';
+    }
+    var el = document.getElementById('app-card-' + app.id);
+    if (!el) return;
+    el.className = 'app-card' + muted;
+    el.innerHTML =
+      '<div class="app-visual"><svg><use href="#' + app.icon + '"/></svg></div>' +
+      '<div class="app-body">' +
+        '<div class="app-top-row"><span class="app-name">' + app.name + '</span>' +
+          '<span class="status-pill ' + meta.pill + '"><span class="dot"></span>' + meta.label + '</span></div>' +
+        cta +
+      '</div>';
+  }
+
+  // ---------------- GESTÃO DE USUÁRIOS ----------------
+  var gestaoDados = null; // { pessoas, contas, acessos, apps_disponiveis }
+  var estadoGestao = { busca: '', filial: '', aba: 'ativos' };
+
+  function chamarHub(body){
+    return sb.auth.getSession().then(function(sres){
+      var token = sres.data.session.access_token;
+      return fetch(HUB_FN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify(body)
+      }).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, data: j }; }); });
+    });
+  }
+
+  function carregarGestaoUsuarios(){
+    document.getElementById('gestao-sub').textContent = 'carregando…';
+    chamarHub({ action: 'listar' }).then(function(res){
+      if (!res.ok) { toast('Erro ao carregar usuários: ' + (res.data.error || '')); return; }
+      gestaoDados = res.data;
+      var filiaisUnicas = Array.from(new Set(gestaoDados.pessoas.map(function(p){ return p.filial_id; }))).length;
+      popularFiltroFilial();
+      renderGestao();
+    });
+  }
+
+  function popularFiltroFilial(){
+    var sel = document.getElementById('pessoas-filial-filter');
+    if (sel.dataset.done) return;
+    sel.dataset.done = '1';
+    // filial só sabemos o id aqui (a listagem não embute o nome) -- carregado à parte
+    sb.from('filiais').select('id, nome').order('nome').then(function(res){
+      (res.data || []).forEach(function(f){
+        var opt = document.createElement('option');
+        opt.value = f.id; opt.textContent = f.nome;
+        sel.appendChild(opt);
+      });
+    });
+  }
+
+  function contaDaPessoa(pessoaId){
+    return (gestaoDados.contas || []).find(function(c){ return c.pessoa_id === pessoaId; }) || null;
+  }
+  function acessoApp(appKey, contaId){
+    var lista = (gestaoDados.acessos || {})[appKey] || [];
+    return lista.find(function(a){ return a.id === contaId; }) || null;
+  }
+
+  function pessoasFiltradas(){
+    var q = estadoGestao.busca.trim().toLowerCase();
+    return gestaoDados.pessoas.filter(function(p){
+      if (estadoGestao.filial && p.filial_id !== estadoGestao.filial) return false;
+      if (q && (p.nome + ' ' + (p.email || '')).toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
+  function renderGestao(){
+    if (!gestaoDados) return;
+    var filtradas = pessoasFiltradas();
+    var ativos = filtradas.filter(function(p){ return !p.acesso_bloqueado; });
+    var inativos = filtradas.filter(function(p){ return p.acesso_bloqueado; });
+    if (estadoGestao.aba === 'inativos' && inativos.length === 0) estadoGestao.aba = 'ativos';
+    var wrap = document.getElementById('gestao-tabs');
+    wrap.innerHTML =
+      '<button type="button" class="gestao-tab' + (estadoGestao.aba === 'ativos' ? ' is-active' : '') + '" data-aba="ativos">Ativos (' + ativos.length + ')</button>' +
+      (inativos.length ? '<button type="button" class="gestao-tab inativos' + (estadoGestao.aba === 'inativos' ? ' is-active' : '') + '" data-aba="inativos">Bloqueados (' + inativos.length + ')</button>' : '');
+    Array.prototype.forEach.call(wrap.querySelectorAll('.gestao-tab'), function(btn){
+      btn.addEventListener('click', function(){ estadoGestao.aba = btn.getAttribute('data-aba'); renderGestao(); });
+    });
+    var exibida = estadoGestao.aba === 'inativos' ? inativos : ativos;
+    document.getElementById('gestao-sub').textContent = gestaoDados.pessoas.length + ' pessoa(s) cadastrada(s) — ' + gestaoDados.contas.length + ' com login';
+
+    var tbody = document.getElementById('pessoas-tbody');
+    tbody.innerHTML = exibida.map(linhaHtml).join('');
+    document.getElementById('pessoas-foot').textContent = exibida.length + ' exibido(s)';
+
+    Array.prototype.forEach.call(tbody.querySelectorAll('[data-action]'), function(btn){
+      btn.addEventListener('click', function(){ onAcao(btn.getAttribute('data-action'), btn.dataset); });
+    });
+  }
+
+  function linhaHtml(p){
+    var conta = contaDaPessoa(p.id);
+    var email = p.email ? escapeHtml(p.email) : '<span style="color:var(--muted-2)">sem e-mail</span>';
+
+    var statusCell;
+    if (p.acesso_bloqueado) {
+      statusCell = '<span class="badge-bloqueado">Bloqueado</span>';
+    } else if (!conta) {
+      statusCell = '<span style="font-size:.72rem;color:var(--muted-2);">sem login</span>';
+    } else {
+      statusCell = '<span style="font-size:.72rem;color:var(--good);font-weight:700;">Com login</span>';
+    }
+
+    var pillsHtml;
+    if (!conta) {
+      pillsHtml = '<span style="font-size:.72rem;color:var(--muted-2)">crie o login primeiro</span>';
+    } else {
+      pillsHtml = gestaoDados.apps_disponiveis.map(function(appKey){
+        var ac = acessoApp(appKey, conta.id);
+        var on = !!ac;
+        return '<span class="app-pill' + (on ? ' on' : '') + '" data-action="toggle_acesso" data-app="' + appKey + '" data-conta="' + conta.id + '" title="' + appKey + '">' + appKey + '</span>';
+      }).join('');
+    }
+
+    var acoesHtml = '';
+    if (!conta) {
+      var podeCriar = !!p.email && !p.acesso_bloqueado;
+      acoesHtml += '<button class="criar-login-btn" data-action="criar_conta" data-pessoa="' + p.id + '"' + (podeCriar ? '' : ' disabled') + '>Criar login</button>';
+    } else {
+      acoesHtml += '<button data-action="resetar_senha" data-conta="' + conta.id + '" data-email="' + escapeHtml(p.email) + '" title="Redefinir senha"><svg width="13" height="13"><use href="#i-key"/></svg></button>';
+    }
+    if (p.acesso_bloqueado) {
+      acoesHtml += '<button class="good" data-action="reativar_pessoa" data-pessoa="' + p.id + '" title="Reativar"><svg width="13" height="13"><use href="#i-power"/></svg></button>';
+    } else {
+      acoesHtml += '<button class="danger" data-action="desativar_pessoa" data-pessoa="' + p.id + '" title="Bloquear e apagar login em todas as apps"><svg width="13" height="13"><use href="#i-power"/></svg></button>';
+    }
+
+    return '<tr>' +
+      '<td><div class="gestao-user">' +
+        '<span class="avatar" style="width:32px;height:32px;font-size:.7rem;background:' + corAvatar(p.nome) + '">' + iniciais(p.nome) + '</span>' +
+        '<div><div class="name">' + escapeHtml(p.nome) + '</div><div class="email">' + email + '</div></div>' +
+      '</div></td>' +
+      '<td class="gestao-cargo">' + (p.cargo ? escapeHtml(p.cargo) : '—') + '</td>' +
+      '<td>' + statusCell + '</td>' +
+      '<td>' + pillsHtml + '</td>' +
+      '<td><div class="gestao-actions">' + acoesHtml + '</div></td>' +
+    '</tr>';
+  }
+
+  function onAcao(action, ds){
+    if (action === 'toggle_acesso') {
+      var jaTem = !!acessoApp(ds.app, ds.conta);
+      chamarHub({ action: jaTem ? 'revogar_acesso' : 'conceder_acesso', conta_id: ds.conta, app: ds.app }).then(function(res){
+        if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
+        toast(jaTem ? 'Acesso removido.' : 'Acesso concedido.');
+        carregarGestaoUsuarios();
+      });
+      return;
+    }
+    if (action === 'criar_conta') {
+      if (!confirm('Criar login para essa pessoa?')) return;
+      chamarHub({ action: 'criar_conta', pessoa_id: ds.pessoa }).then(function(res){
+        if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
+        mostrarSenhaTemporaria(res.data.email, res.data.senha_temporaria);
+        carregarGestaoUsuarios();
+      });
+      return;
+    }
+    if (action === 'resetar_senha') {
+      if (!confirm('Gerar nova senha temporária para ' + ds.email + '?')) return;
+      chamarHub({ action: 'resetar_senha', conta_id: ds.conta }).then(function(res){
+        if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
+        mostrarSenhaTemporaria(ds.email, res.data.senha_temporaria);
+      });
+      return;
+    }
+    if (action === 'desativar_pessoa') {
+      if (!confirm('Bloquear essa pessoa e apagar o login dela em TODAS as apps? Essa ação é imediata.')) return;
+      chamarHub({ action: 'desativar_pessoa', pessoa_id: ds.pessoa }).then(function(res){
+        if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
+        toast('Pessoa bloqueada e login removido.');
+        carregarGestaoUsuarios();
+      });
+      return;
+    }
+    if (action === 'reativar_pessoa') {
+      chamarHub({ action: 'reativar_pessoa', pessoa_id: ds.pessoa }).then(function(res){
+        if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
+        toast('Pessoa desbloqueada. Crie um novo login se ela precisar acessar de novo.');
+        carregarGestaoUsuarios();
+      });
+      return;
+    }
+  }
+
+  function mostrarSenhaTemporaria(email, senha){
+    document.getElementById('senha-modal-email').textContent = email;
+    document.getElementById('senha-modal-valor').textContent = senha;
+    document.getElementById('senha-modal').hidden = false;
+  }
+  document.getElementById('senha-modal-close').addEventListener('click', function(){ document.getElementById('senha-modal').hidden = true; });
+  document.getElementById('senha-modal-ok').addEventListener('click', function(){ document.getElementById('senha-modal').hidden = true; });
+  document.getElementById('senha-modal-copy').addEventListener('click', function(){
+    var v = document.getElementById('senha-modal-valor').textContent;
+    navigator.clipboard.writeText(v).then(function(){ toast('Senha copiada.'); });
+  });
+
+  document.getElementById('pessoas-search').addEventListener('input', function(e){ estadoGestao.busca = e.target.value; renderGestao(); });
+  document.getElementById('pessoas-filial-filter').addEventListener('change', function(e){ estadoGestao.filial = e.target.value; renderGestao(); });
+
+  // ---------------- NAV / SIDEBAR ----------------
+  var sidebar = document.getElementById('sidebar');
+  document.getElementById('menu-toggle').addEventListener('click', function(){ sidebar.classList.toggle('is-expanded'); });
+
+  var navHub = document.getElementById('nav-hub');
+  var navConfig = document.getElementById('nav-config');
+  var viewHub = document.getElementById('view-hub');
+  var viewConfig = document.getElementById('view-config');
+  function selectView(view){
+    viewHub.hidden = (view !== 'hub');
+    viewConfig.hidden = (view !== 'config');
+    navHub.classList.toggle('is-active', view === 'hub');
+    navConfig.classList.toggle('is-active', view === 'config');
+    sidebar.classList.remove('is-expanded');
+  }
+  navHub.addEventListener('click', function(){ selectView('hub'); });
+  navConfig.addEventListener('click', function(){ selectView('config'); });
+  selectView('hub');
+
+  var userBtn = document.getElementById('user-footer-btn');
+  var popup = document.getElementById('user-popup');
+  function closePopup(){ popup.hidden = true; userBtn.classList.remove('is-open'); document.removeEventListener('mousedown', onDocClick); }
+  function onDocClick(e){ if (popup.contains(e.target) || userBtn.contains(e.target)) return; closePopup(); }
+  userBtn.addEventListener('click', function(){
+    if (!popup.hidden) { closePopup(); return; }
+    var r = userBtn.getBoundingClientRect();
+    popup.style.left = (r.left + 8) + 'px';
+    popup.style.top = (r.top - 8) + 'px';
+    popup.style.transform = 'translateY(-100%)';
+    popup.hidden = false;
+    userBtn.classList.add('is-open');
+    document.addEventListener('mousedown', onDocClick);
+  });
+
+})();
+</script>
+</body>
+</html>
