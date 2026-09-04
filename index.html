@@ -121,15 +121,22 @@
   .user-popup button:hover{ background:#27272A; }
   .user-popup button.danger:hover{ color:#FCA5A5; }
   main.content{ flex:1; min-width:0; padding:28px 40px 64px; background:var(--canvas); }
-  .page-head{ max-width:1180px; margin:0 auto 26px; }
+  .page-head{ margin-bottom:26px; }
   .page-head h1{ font-size:1.5rem; font-weight:800; letter-spacing:-.01em; }
   .page-head .sub{ color:var(--muted); font-size:.88rem; margin-top:4px; }
 
+  /* "Hub de apps" é um grid de cards -- isso sim fica melhor com um teto de
+     largura (cards gigantes/esparsos em monitor largo ficam ruins). A
+     Gestão de Usuários é uma TABELA DE DADOS: o certo é ela ocupar o
+     espaço disponível de verdade, não ficar numa ilha centralizada. */
+  .hub-view-wrap{ max-width:1180px; margin:0 auto; }
+
+  /* alinha o título "Configurações" com o teto de largura da tabela abaixo
+     dele (mesmo valor -- 1600px -- só que aplicado aqui e não em .page-head
+     direto, porque essa classe também é usada no Hub de apps com outro teto) */
+  #view-config .page-head{ max-width:1600px; margin:0 auto 26px; }
   .settings-layout{ display:flex; gap:20px; align-items:flex-start; }
-  /* sem isso, num monitor largo a tabela/toolbar esticam até a borda da tela
-     -- as colunas com pouco conteúdo (Status, Ações) viram um vazio enorme
-     em vez de ficarem compactas. Mesmo teto que o app-grid já usava. */
-  .settings-content{ flex:1; min-width:0; max-width:1180px; margin:0 auto; }
+  .settings-content{ flex:1; min-width:0; max-width:1600px; margin:0 auto; }
   .gestao-title{ font-size:1.35rem; font-weight:800; color:var(--ink); margin:0 0 3px; }
   .gestao-sub{ font-size:.8rem; color:var(--muted); margin:0 0 16px; }
   .gestao-toolbar{ display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; margin-bottom:14px; background:var(--surface); border:1px solid var(--line-soft); border-radius:14px; padding:14px 16px; }
@@ -306,8 +313,10 @@
 
   <main class="content">
     <div id="view-hub">
-      <div class="page-head"><h1>Seus aplicativos</h1><p class="sub">Acesso centralizado aos sistemas internos da Deva.</p></div>
-      <div class="app-grid" id="app-grid"></div>
+      <div class="hub-view-wrap">
+        <div class="page-head"><h1>Seus aplicativos</h1><p class="sub">Acesso centralizado aos sistemas internos da Deva.</p></div>
+        <div class="app-grid" id="app-grid"></div>
+      </div>
     </div>
 
     <div id="view-config" hidden>
