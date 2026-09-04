@@ -76,6 +76,13 @@
   .senha-box{ background:var(--surface-2); border-radius:12px; padding:16px; text-align:center; margin:8px 0 18px; }
   .senha-box .valor{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:1.15rem; font-weight:700; letter-spacing:.03em; color:var(--ink); margin:6px 0; word-break:break-all; }
 
+  .app-check-row{ display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:9px; }
+  .app-check-row:hover{ background:var(--surface-2); }
+  .app-check-row input[type=checkbox]{ width:17px; height:17px; accent-color:var(--accent); flex-shrink:0; }
+  .app-check-row label{ font-size:.85rem; font-weight:600; color:var(--ink-soft); flex:1; cursor:pointer; }
+  .app-check-row.disabled label{ color:var(--muted-2); cursor:not-allowed; }
+  .app-check-row .em-breve{ font-size:.66rem; font-weight:700; color:var(--muted-2); background:var(--surface-2); padding:2px 8px; border-radius:999px; }
+
   .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:var(--r-btn); border:1px solid transparent; cursor:pointer; font-weight:700; font-size:.88rem; padding:12px 18px; transition:background .15s ease, border-color .15s ease, transform .1s ease, color .15s ease; }
   .btn:active{ transform:translateY(1px); }
   .btn:disabled{ opacity:.55; cursor:not-allowed; }
@@ -170,16 +177,7 @@
   .gestao-actions button:disabled:hover{ background:none; }
   .gestao-table-foot{ padding:10px 16px; border-top:1px solid var(--line-soft); font-size:.76rem; color:var(--muted-2); font-weight:500; }
 
-  .app-pill{ display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:.65rem; font-weight:700; border:1.5px solid var(--line); color:var(--muted-2); background:var(--surface); cursor:pointer; margin:2px 3px 2px 0; }
-  .app-pill.on{ border-color:var(--good); color:var(--good); background:var(--good-soft); }
-  .app-pill.disabled{ cursor:not-allowed; opacity:.5; }
   .badge-bloqueado{ display:inline-flex; align-items:center; gap:4px; font-size:.65rem; font-weight:700; color:#B91C1C; background:#FEF2F2; border-radius:999px; padding:3px 9px; }
-  /* precisa de mais especificidade que ".gestao-actions button" (que é pros
-     botões-ícone quadrados de 26px) -- senão essa regra genérica vence e
-     espreme o texto "Criar login" numa caixa de 26px, quebrando em 2 linhas */
-  .gestao-actions .criar-login-btn{ all:unset; box-sizing:border-box; width:auto; height:auto; font-size:.72rem; font-weight:700; color:var(--accent); cursor:pointer; padding:4px 8px; border-radius:7px; white-space:nowrap; flex-shrink:0; }
-  .gestao-actions .criar-login-btn:hover{ background:var(--accent-soft); }
-  .gestao-actions .criar-login-btn:disabled{ color:var(--muted-2); cursor:not-allowed; }
 
   .app-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(226px,1fr)); gap:22px; max-width:1180px; margin:0 auto; }
   .app-card{ min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-card); display:flex; flex-direction:column; transition:box-shadow .18s ease, transform .18s ease; }
@@ -235,6 +233,7 @@
     <symbol id="i-power" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></g></symbol>
     <symbol id="i-x" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></g></symbol>
     <symbol id="i-key" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></g></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></g></symbol>
     <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></g></symbol>
   </defs>
 </svg>
@@ -344,16 +343,24 @@
   <button class="danger" id="popup-logout"><svg width="14" height="14"><use href="#i-logout"/></svg> Sair</button>
 </div>
 
-<!-- modal: senha temporária exibida uma vez -->
-<div class="modal-overlay" id="senha-modal" hidden>
+<!-- modal: editar acesso da pessoa (é aqui que login é criado, se ainda não
+     existir -- não tem botão "criar login" separado em lugar nenhum) -->
+<div class="modal-overlay" id="edit-modal" hidden>
   <div class="modal-card">
-    <div class="modal-head"><h2>Senha temporária gerada</h2><button type="button" class="modal-close" id="senha-modal-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
-    <p class="modal-note">Essa senha só aparece agora — copie e envie para <strong id="senha-modal-email"></strong> por um canal seguro (WhatsApp, presencial etc.). A pessoa deve trocá-la no primeiro acesso.</p>
-    <div class="senha-box">
-      <div class="valor" id="senha-modal-valor"></div>
-      <button type="button" class="btn btn-ghost" id="senha-modal-copy" style="margin-top:8px;"><svg width="14" height="14"><use href="#i-copy"/></svg> Copiar</button>
+    <div class="modal-head"><h2>Editar acesso</h2><button type="button" class="modal-close" id="edit-modal-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+      <span class="avatar" id="edit-modal-avatar" style="width:36px;height:36px;font-size:.8rem;"></span>
+      <div style="min-width:0;">
+        <div style="font-weight:700;font-size:.9rem;color:var(--ink);" id="edit-modal-nome"></div>
+        <div style="font-size:.76rem;color:var(--muted-2);" id="edit-modal-email"></div>
+      </div>
     </div>
-    <div class="modal-actions"><button type="button" class="btn btn-primary" id="senha-modal-ok">Entendi</button></div>
+    <p class="modal-note" id="edit-modal-note">Marque os apps que essa pessoa deve acessar. Se for a primeira vez, o login é criado na hora e a senha é enviada por e-mail — não precisa de nenhum passo separado.</p>
+    <div id="edit-modal-apps" style="display:flex;flex-direction:column;gap:2px;margin-bottom:18px;"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="edit-modal-cancel">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="edit-modal-save">Salvar</button>
+    </div>
   </div>
 </div>
 
@@ -632,24 +639,18 @@
       statusCell = '<span style="font-size:.72rem;color:var(--good);font-weight:700;">Com login</span>';
     }
 
-    var pillsHtml;
-    if (!conta) {
-      pillsHtml = '<span style="font-size:.72rem;color:var(--muted-2)">crie o login primeiro</span>';
-    } else {
-      pillsHtml = gestaoDados.apps_disponiveis.map(function(appKey){
-        var ac = acessoApp(appKey, conta.id);
-        var on = !!ac;
-        return '<span class="app-pill' + (on ? ' on' : '') + '" data-action="toggle_acesso" data-app="' + appKey + '" data-conta="' + conta.id + '" title="' + appKey + '">' + appKey + '</span>';
-      }).join('');
-    }
+    // Coluna de acesso é só leitura -- editar (marcar/desmarcar app) acontece
+    // dentro do modal "Editar acesso", não clicando pill por pill na linha.
+    var appsComAcesso = conta
+      ? APPS.filter(function(a){ return gestaoDados.apps_disponiveis.indexOf(a.id) !== -1 && !!acessoApp(a.id, conta.id); }).map(function(a){ return a.name; })
+      : [];
+    var acessoCell = appsComAcesso.length
+      ? '<span style="font-size:.76rem;color:var(--ink-soft);">' + escapeHtml(appsComAcesso.join(', ')) + '</span>'
+      : '<span style="font-size:.76rem;color:var(--muted-2);">nenhum</span>';
 
-    var acoesHtml = '';
-    if (!conta) {
-      var podeCriar = !!p.email && !p.acesso_bloqueado;
-      acoesHtml += '<button class="criar-login-btn" data-action="criar_conta" data-pessoa="' + p.id + '"' + (podeCriar ? '' : ' disabled') + '>Criar login</button>';
-    } else {
-      acoesHtml += '<button data-action="resetar_senha" data-conta="' + conta.id + '" data-email="' + escapeHtml(p.email) + '" title="Redefinir senha"><svg width="13" height="13"><use href="#i-key"/></svg></button>';
-    }
+    var acoesHtml = '<button data-action="editar" data-pessoa="' + p.id + '" title="Editar acesso"><svg width="13" height="13"><use href="#i-pencil"/></svg></button>';
+    var podeResetar = !!conta && !!p.email;
+    acoesHtml += '<button data-action="resetar_senha" data-conta="' + (conta ? conta.id : '') + '" data-email="' + escapeHtml(p.email || '') + '" data-nome="' + escapeHtml(p.nome) + '" title="' + (podeResetar ? 'Redefinir senha' : 'Sem login ainda') + '"' + (podeResetar ? '' : ' disabled') + '><svg width="13" height="13"><use href="#i-key"/></svg></button>';
     if (p.acesso_bloqueado) {
       acoesHtml += '<button class="good" data-action="reativar_pessoa" data-pessoa="' + p.id + '" title="Reativar"><svg width="13" height="13"><use href="#i-power"/></svg></button>';
     } else {
@@ -663,35 +664,19 @@
       '</div></td>' +
       '<td class="gestao-cargo">' + (p.cargo ? escapeHtml(p.cargo) : '—') + '</td>' +
       '<td>' + statusCell + '</td>' +
-      '<td>' + pillsHtml + '</td>' +
+      '<td>' + acessoCell + '</td>' +
       '<td><div class="gestao-actions">' + acoesHtml + '</div></td>' +
     '</tr>';
   }
 
   function onAcao(action, ds){
-    if (action === 'toggle_acesso') {
-      var jaTem = !!acessoApp(ds.app, ds.conta);
-      chamarHub({ action: jaTem ? 'revogar_acesso' : 'conceder_acesso', conta_id: ds.conta, app: ds.app }).then(function(res){
-        if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
-        toast(jaTem ? 'Acesso removido.' : 'Acesso concedido.');
-        carregarGestaoUsuarios();
-      });
-      return;
-    }
-    if (action === 'criar_conta') {
-      if (!confirm('Criar login para essa pessoa?')) return;
-      chamarHub({ action: 'criar_conta', pessoa_id: ds.pessoa }).then(function(res){
-        if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
-        mostrarSenhaTemporaria(res.data.email, res.data.senha_temporaria);
-        carregarGestaoUsuarios();
-      });
-      return;
-    }
+    if (action === 'editar') { abrirEdicao(ds.pessoa); return; }
     if (action === 'resetar_senha') {
-      if (!confirm('Gerar nova senha temporária para ' + ds.email + '?')) return;
+      if (!ds.conta) return;
+      if (!confirm('Gerar uma nova senha temporária para ' + ds.nome + ' e enviar por e-mail (' + ds.email + ')?')) return;
       chamarHub({ action: 'resetar_senha', conta_id: ds.conta }).then(function(res){
         if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
-        mostrarSenhaTemporaria(ds.email, res.data.senha_temporaria);
+        toast(res.data.email_enviado === false ? 'Senha redefinida, mas o e-mail falhou -- avise a pessoa por outro meio.' : 'Nova senha enviada por e-mail para ' + res.data.email + '.');
       });
       return;
     }
@@ -707,23 +692,109 @@
     if (action === 'reativar_pessoa') {
       chamarHub({ action: 'reativar_pessoa', pessoa_id: ds.pessoa }).then(function(res){
         if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
-        toast('Pessoa desbloqueada. Crie um novo login se ela precisar acessar de novo.');
+        toast('Pessoa desbloqueada.');
         carregarGestaoUsuarios();
       });
       return;
     }
   }
 
-  function mostrarSenhaTemporaria(email, senha){
-    document.getElementById('senha-modal-email').textContent = email;
-    document.getElementById('senha-modal-valor').textContent = senha;
-    document.getElementById('senha-modal').hidden = false;
+  // ---------------- MODAL: EDITAR ACESSO ----------------
+  var editModal = document.getElementById('edit-modal');
+  var pessoaEmEdicaoId = null;
+
+  function abrirEdicao(pessoaId){
+    var p = gestaoDados.pessoas.find(function(x){ return x.id === pessoaId; });
+    if (!p) return;
+    pessoaEmEdicaoId = pessoaId;
+    var conta = contaDaPessoa(p.id);
+
+    document.getElementById('edit-modal-avatar').textContent = iniciais(p.nome);
+    document.getElementById('edit-modal-avatar').style.background = corAvatar(p.nome);
+    document.getElementById('edit-modal-nome').textContent = p.nome;
+    document.getElementById('edit-modal-email').textContent = p.email || 'sem e-mail cadastrado';
+
+    var nota = document.getElementById('edit-modal-note');
+    if (!p.email) {
+      nota.textContent = 'Essa pessoa não tem e-mail cadastrado -- não é possível conceder acesso a nenhum app até isso ser corrigido.';
+    } else if (p.acesso_bloqueado) {
+      nota.textContent = 'Essa pessoa está bloqueada -- reative antes de conceder acesso.';
+    } else {
+      nota.textContent = 'Marque os apps que essa pessoa deve acessar. Se for a primeira vez, o login é criado na hora e a senha é enviada por e-mail -- não precisa de nenhum passo separado.';
+    }
+
+    var podeEditar = !!p.email && !p.acesso_bloqueado;
+    var wrap = document.getElementById('edit-modal-apps');
+    wrap.innerHTML = APPS.map(function(a){
+      var disponivel = gestaoDados.apps_disponiveis.indexOf(a.id) !== -1;
+      var marcado = disponivel && conta && !!acessoApp(a.id, conta.id);
+      if (!disponivel) {
+        return '<div class="app-check-row disabled"><input type="checkbox" disabled><label>' + escapeHtml(a.name) + '</label><span class="em-breve">Em breve</span></div>';
+      }
+      return '<div class="app-check-row"><input type="checkbox" id="chk-app-' + a.id + '" data-app-id="' + a.id + '"' +
+        (marcado ? ' checked' : '') + (podeEditar ? '' : ' disabled') + '><label for="chk-app-' + a.id + '">' + escapeHtml(a.name) + '</label></div>';
+    }).join('');
+
+    document.getElementById('edit-modal-save').disabled = !podeEditar;
+    editModal.hidden = false;
   }
-  document.getElementById('senha-modal-close').addEventListener('click', function(){ document.getElementById('senha-modal').hidden = true; });
-  document.getElementById('senha-modal-ok').addEventListener('click', function(){ document.getElementById('senha-modal').hidden = true; });
-  document.getElementById('senha-modal-copy').addEventListener('click', function(){
-    var v = document.getElementById('senha-modal-valor').textContent;
-    navigator.clipboard.writeText(v).then(function(){ toast('Senha copiada.'); });
+  function fecharEdicao(){ editModal.hidden = true; pessoaEmEdicaoId = null; }
+
+  document.getElementById('edit-modal-close').addEventListener('click', fecharEdicao);
+  document.getElementById('edit-modal-cancel').addEventListener('click', fecharEdicao);
+  editModal.addEventListener('click', function(e){ if (e.target === editModal) fecharEdicao(); });
+
+  document.getElementById('edit-modal-save').addEventListener('click', function(){
+    if (!pessoaEmEdicaoId) return;
+    var p = gestaoDados.pessoas.find(function(x){ return x.id === pessoaEmEdicaoId; });
+    var conta = contaDaPessoa(p.id);
+    var checks = document.querySelectorAll('#edit-modal-apps input[type=checkbox]:not(:disabled)');
+    var mudancas = [];
+    Array.prototype.forEach.call(checks, function(chk){
+      var appId = chk.getAttribute('data-app-id');
+      var tinhaAntes = conta && !!acessoApp(appId, conta.id);
+      if (chk.checked !== tinhaAntes) {
+        mudancas.push({ app: appId, conceder: chk.checked });
+      }
+    });
+    if (mudancas.length === 0) { fecharEdicao(); return; }
+
+    var saveBtn = document.getElementById('edit-modal-save');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Salvando…';
+
+    var contaIdAtual = conta ? conta.id : null;
+    var loginFoiCriado = false;
+    var emailFalhou = false;
+
+    // sequencial (não paralelo) -- a primeira concessão pode criar o login,
+    // e as chamadas seguintes precisam do conta_id que só existe depois disso
+    function processar(i){
+      if (i >= mudancas.length) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Salvar';
+        fecharEdicao();
+        if (loginFoiCriado) {
+          toast(emailFalhou ? 'Acesso salvo, login criado, mas o e-mail de boas-vindas falhou.' : 'Acesso salvo. Login criado e senha enviada por e-mail para ' + p.email + '.');
+        } else {
+          toast('Acesso atualizado.');
+        }
+        carregarGestaoUsuarios();
+        return;
+      }
+      var m = mudancas[i];
+      var body = m.conceder
+        ? { action: 'conceder_acesso', app: m.app, conta_id: contaIdAtual, pessoa_id: p.id }
+        : { action: 'revogar_acesso', app: m.app, conta_id: contaIdAtual };
+      chamarHub(body).then(function(res){
+        if (!res.ok) { toast('Erro ao salvar "' + m.app + '": ' + (res.data.error || '')); saveBtn.disabled = false; saveBtn.textContent = 'Salvar'; return; }
+        if (res.data.conta_id) contaIdAtual = res.data.conta_id;
+        if (res.data.login_criado) loginFoiCriado = true;
+        if (res.data.email_enviado === false) emailFalhou = true;
+        processar(i + 1);
+      });
+    }
+    processar(0);
   });
 
   document.getElementById('pessoas-search').addEventListener('input', function(e){ estadoGestao.busca = e.target.value; renderGestao(); });
