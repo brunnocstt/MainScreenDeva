@@ -47,6 +47,12 @@
   .logo-mark{ color:var(--ink); }
 
   .login-shell{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:48px 20px; background:var(--canvas); }
+  /* Tela neutra enquanto a sessão (cookie compartilhado) ainda não foi
+     conferida -- sem isso, a tela de login pisca por um instante antes de
+     logar de novo a cada F5, pq o HTML cru já nasce com #login-shell visível
+     e só troca depois que a consulta em contas/pessoas responde. */
+  .boot-spinner{ width:32px; height:32px; border-radius:50%; border:3px solid var(--line-soft); border-top-color:var(--accent); animation:boot-spin .7s linear infinite; }
+  @keyframes boot-spin{ to{ transform:rotate(360deg); } }
   .login-card{ width:100%; max-width:400px; background:var(--surface); border:1px solid var(--line-soft); border-radius:var(--r-login); box-shadow:var(--shadow-lift); padding:40px 36px; text-align:center; }
   .login-card .logo-mark{ width:164px; height:auto; margin:0 auto 22px; }
   .badge{ display:inline-flex; align-items:center; gap:6px; background:var(--accent-soft); color:var(--accent); padding:6px 14px; border-radius:999px; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; margin-bottom:22px; }
@@ -253,8 +259,11 @@
   </defs>
 </svg>
 
+<!-- ================= BOOT (verificando sessão) ================= -->
+<div id="boot-shell" class="login-shell"><div class="boot-spinner"></div></div>
+
 <!-- ================= LOGIN ================= -->
-<div id="login-shell" class="login-shell">
+<div id="login-shell" class="login-shell" hidden>
   <div class="login-card">
     <svg class="logo-mark" viewBox="0 0 183 15"><use href="#i-logo-ivecodeva"/></svg>
     <span class="badge"><svg width="13" height="13"><use href="#i-grid"/></svg> Portal de aplicativos</span>
@@ -604,6 +613,7 @@
   }
 
   // ---------------- LOGIN ----------------
+  var bootShell = document.getElementById('boot-shell');
   var loginShell = document.getElementById('login-shell');
   var forgotShell = document.getElementById('forgot-shell');
   var mustchangeShell = document.getElementById('mustchange-shell');
@@ -612,6 +622,7 @@
   var loginSubmit = document.getElementById('login-submit');
 
   function esconderTodasAsTelas(){
+    bootShell.hidden = true;
     loginShell.hidden = true;
     forgotShell.hidden = true;
     mustchangeShell.hidden = true;
