@@ -65,7 +65,13 @@
   .ts-wrap{ display:flex; justify-content:center; margin-bottom:16px; }
 
   .modal-overlay{ position:fixed; inset:0; background:rgba(15,10,8,.45); z-index:300; display:flex; align-items:center; justify-content:center; padding:20px; }
-  .modal-card{ width:100%; max-width:420px; max-height:calc(100vh - 40px); overflow-y:auto; background:var(--surface); border-radius:20px; box-shadow:var(--shadow-lift); padding:24px; }
+  /* .modal-card é só a moldura arredondada (overflow:hidden clipa quem
+     rolar por dentro); o scroll de verdade e o padding moram no
+     .modal-card-scroll. Sem isso, a scrollbar nativa do próprio card
+     esquartejava o canto arredondado dele (mesmo problema resolvido antes
+     no filiais-wrap, agora acontecendo aqui porque o card é quem rola). */
+  .modal-card{ width:100%; max-width:420px; max-height:calc(100vh - 40px); background:var(--surface); border-radius:20px; box-shadow:var(--shadow-lift); overflow:hidden; }
+  .modal-card-scroll{ max-height:calc(100vh - 40px); overflow-y:auto; padding:24px; }
   .modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
   .modal-head h2{ font-size:1.1rem; font-weight:800; color:var(--ink); }
   .modal-close{ all:unset; box-sizing:border-box; width:30px; height:30px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted); }
@@ -457,6 +463,7 @@
      existir -- não tem botão "criar login" separado em lugar nenhum) -->
 <div class="modal-overlay" id="edit-modal" hidden>
   <div class="modal-card">
+   <div class="modal-card-scroll">
     <div class="modal-head"><h2>Editar acesso</h2><button type="button" class="modal-close" id="edit-modal-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
       <span class="avatar" id="edit-modal-avatar" style="width:36px;height:36px;font-size:.8rem;"></span>
@@ -474,6 +481,7 @@
       <button type="button" class="btn btn-ghost" id="edit-modal-cancel">Cancelar</button>
       <button type="button" class="btn btn-primary" id="edit-modal-save">Salvar</button>
     </div>
+   </div>
   </div>
 </div>
 
@@ -482,6 +490,7 @@
      algum motivo específico da pessoa (mesmo padrão da Ferramentaria). -->
 <div class="modal-overlay" id="senha-modal" hidden>
   <div class="modal-card">
+   <div class="modal-card-scroll">
     <div class="modal-head"><h2>Senha temporária</h2><button type="button" class="modal-close" id="senha-modal-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
     <p class="modal-note" id="senha-modal-note"></p>
     <div class="senha-box">
@@ -489,6 +498,7 @@
       <button type="button" class="btn btn-ghost" id="senha-modal-copy" style="margin-top:8px;"><svg width="14" height="14"><use href="#i-copy"/></svg> Copiar</button>
     </div>
     <div class="modal-actions"><button type="button" class="btn btn-primary" id="senha-modal-ok">Entendi</button></div>
+   </div>
   </div>
 </div>
 
