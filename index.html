@@ -264,6 +264,7 @@
           <button type="button" class="eye-toggle" id="eye-toggle" aria-label="Mostrar senha"><svg width="17" height="17"><use href="#i-eye"/></svg></button>
         </div>
       </div>
+      <div class="row-end"><a class="link-accent" href="#" id="link-esqueci-senha">Esqueci minha senha</a></div>
       <div class="ts-wrap"><div class="cf-turnstile" data-sitekey="0x4AAAAAAD7cl8ffY5GysVNZ"></div></div>
       <button type="submit" class="btn btn-primary btn-block" id="login-submit">Entrar</button>
     </form>
@@ -271,6 +272,110 @@
     <div class="login-note" style="margin-top:24px; padding:13px 14px; border-radius:12px; background:var(--surface-2); font-size:.8rem; color:var(--muted); line-height:1.5;">
       Problemas de acesso? Entre em contato com <a href="mailto:bruno.cesar@deva.com.br" style="color:var(--accent); font-weight:600; text-decoration:none;">bruno.cesar@deva.com.br</a>
     </div>
+  </div>
+</div>
+
+<!-- ================= ESQUECI MINHA SENHA (3 passos, código por e-mail --
+     nunca link, o filtro de segurança de e-mail corporativo "clica" em link
+     sozinho e invalida token de uso único; mesmo modelo da Ferramentaria) ================= -->
+<div id="forgot-shell" class="login-shell" hidden>
+  <div class="login-card">
+    <svg class="logo-mark" viewBox="0 0 183 15"><use href="#i-logo-ivecodeva"/></svg>
+
+    <div id="forgot-step-email">
+      <h1>Esqueci minha senha</h1>
+      <p class="lede">Informe seu e-mail cadastrado. Vamos mandar um código de verificação.</p>
+      <div id="forgot-error" class="login-error" hidden></div>
+      <form id="forgot-email-form">
+        <div class="field">
+          <label for="forgot-email">E-mail corporativo</label>
+          <div class="field-control">
+            <svg class="leading" width="17" height="17"><use href="#i-mail"/></svg>
+            <input id="forgot-email" type="email" placeholder="nome.sobrenome@deva.com.br" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="forgot-email-submit">Enviar código</button>
+      </form>
+      <button type="button" class="link-accent" id="forgot-back-1" style="background:none;border:none;cursor:pointer;width:100%;margin-top:18px;">Voltar para o login</button>
+    </div>
+
+    <div id="forgot-step-code" hidden>
+      <h1>Digite o código</h1>
+      <p class="lede">Se <strong id="forgot-email-shown"></strong> tiver uma conta, um código de 6 dígitos foi enviado. Ele expira em 10 minutos.</p>
+      <div id="forgot-code-error" class="login-error" hidden></div>
+      <form id="forgot-code-form">
+        <div class="field">
+          <label for="forgot-code">Código de verificação</label>
+          <input id="forgot-code" inputmode="numeric" maxlength="6" required
+            style="width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:var(--canvas);color:var(--ink);text-align:center;font-size:1.4rem;font-weight:800;letter-spacing:8px;font-family:ui-monospace,monospace;" placeholder="000000">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="forgot-code-submit">Confirmar código</button>
+      </form>
+      <div style="display:flex;justify-content:space-between;margin-top:18px;">
+        <button type="button" class="link-accent" id="forgot-trocar-email" style="background:none;border:none;cursor:pointer;">Trocar e-mail</button>
+        <button type="button" class="link-accent" id="forgot-reenviar">Reenviar código</button>
+      </div>
+    </div>
+
+    <div id="forgot-step-newpass" hidden>
+      <h1>Nova senha</h1>
+      <p class="lede">Código confirmado. Defina sua nova senha.</p>
+      <div id="forgot-newpass-error" class="login-error" hidden></div>
+      <form id="forgot-newpass-form">
+        <div class="field field-pass">
+          <label for="forgot-pass">Nova senha</label>
+          <div class="field-control">
+            <svg class="leading" width="17" height="17"><use href="#i-lock"/></svg>
+            <input id="forgot-pass" type="password" placeholder="Mínimo 8 caracteres" required>
+          </div>
+        </div>
+        <div class="field field-pass">
+          <label for="forgot-pass-confirm">Confirmar nova senha</label>
+          <div class="field-control">
+            <svg class="leading" width="17" height="17"><use href="#i-lock"/></svg>
+            <input id="forgot-pass-confirm" type="password" placeholder="Repita a senha" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="forgot-newpass-submit">Salvar nova senha</button>
+      </form>
+    </div>
+
+    <div id="forgot-step-done" hidden style="text-align:center;">
+      <div style="width:52px;height:52px;border-radius:14px;background:var(--good-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
+        <svg width="24" height="24" color="var(--good)"><use href="#i-user-check"/></svg>
+      </div>
+      <h2 style="font-size:1.1rem;font-weight:800;color:var(--ink);margin:0 0 8px;">Senha redefinida!</h2>
+      <p class="lede" style="margin-bottom:24px;">Já pode acessar o sistema com sua nova senha.</p>
+      <button type="button" class="btn btn-primary btn-block" id="forgot-done-voltar">Ir para o login</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= TROCA DE SENHA OBRIGATÓRIA (login com senha temporária) ================= -->
+<div id="mustchange-shell" class="login-shell" hidden>
+  <div class="login-card">
+    <svg class="logo-mark" viewBox="0 0 183 15"><use href="#i-logo-ivecodeva"/></svg>
+    <span class="badge"><svg width="13" height="13"><use href="#i-lock"/></svg> Primeiro acesso</span>
+    <h1>Defina sua senha</h1>
+    <p class="lede">Você entrou com uma senha temporária. Escolha uma senha definitiva para continuar.</p>
+    <div id="mustchange-error" class="login-error" hidden></div>
+    <form id="mustchange-form">
+      <div class="field field-pass">
+        <label for="mustchange-pass">Nova senha</label>
+        <div class="field-control">
+          <svg class="leading" width="17" height="17"><use href="#i-lock"/></svg>
+          <input id="mustchange-pass" type="password" placeholder="Mínimo 8 caracteres" required>
+        </div>
+      </div>
+      <div class="field field-pass">
+        <label for="mustchange-pass-confirm">Confirmar nova senha</label>
+        <div class="field-control">
+          <svg class="leading" width="17" height="17"><use href="#i-lock"/></svg>
+          <input id="mustchange-pass-confirm" type="password" placeholder="Repita a senha" required>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="mustchange-submit">Definir senha</button>
+    </form>
   </div>
 </div>
 
@@ -364,6 +469,21 @@
   </div>
 </div>
 
+<!-- modal: senha temporária -- sempre vai por e-mail também (pro alvo e pra
+     quem pediu), isso aqui é só reforço na tela caso o e-mail não chegue por
+     algum motivo específico da pessoa (mesmo padrão da Ferramentaria). -->
+<div class="modal-overlay" id="senha-modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head"><h2>Senha temporária</h2><button type="button" class="modal-close" id="senha-modal-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <p class="modal-note" id="senha-modal-note"></p>
+    <div class="senha-box">
+      <div class="valor" id="senha-modal-valor"></div>
+      <button type="button" class="btn btn-ghost" id="senha-modal-copy" style="margin-top:8px;"><svg width="14" height="14"><use href="#i-copy"/></svg> Copiar</button>
+    </div>
+    <div class="modal-actions"><button type="button" class="btn btn-primary" id="senha-modal-ok">Entendi</button></div>
+  </div>
+</div>
+
 <div id="toast-root"></div>
 
 <script>
@@ -372,8 +492,56 @@
 
   var SUPABASE_URL = 'https://iueakatarwkvaoomhhah.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_MpmQzxPjbmNIL2X8SE7uHg_LzydC1Gf';
-  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Sessão guardada em cookie com domain=.albusdata.com.br em vez do
+  // localStorage padrão -- assim o login feito aqui no Hub também é
+  // enxergado pelos apps em outros subdomínios (topdealerdeva.*, etc.),
+  // sem precisar passar token nenhum na URL. Mesmo storageKey precisa ser
+  // usado em TODOS os apps pra ler o mesmo cookie.
+  var DEVA_COOKIE_DOMAIN = '.albusdata.com.br';
+  var DEVA_STORAGE_KEY = 'sb-deva-auth';
+  function criarCookieStorage(domain){
+    var emLocalhost = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+    var secure = (location.protocol === 'https:') ? '; Secure' : '';
+    var dominio = emLocalhost ? '' : ('; domain=' + domain);
+    function lerCookie(nome){
+      var partes = ('; ' + document.cookie).split('; ' + nome + '=');
+      if (partes.length < 2) return null;
+      return decodeURIComponent(partes.pop().split(';').shift());
+    }
+    return {
+      getItem: function(key){ return lerCookie(key); },
+      setItem: function(key, value){
+        document.cookie = key + '=' + encodeURIComponent(value) + dominio +
+          '; path=/; max-age=' + (60*60*24*30) + '; SameSite=Lax' + secure;
+      },
+      removeItem: function(key){
+        document.cookie = key + '=' + dominio + '; path=/; max-age=0; SameSite=Lax' + secure;
+      }
+    };
+  }
+
+  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { storage: criarCookieStorage(DEVA_COOKIE_DOMAIN), storageKey: DEVA_STORAGE_KEY }
+  });
   var HUB_FN_URL = SUPABASE_URL + '/functions/v1/hub-manage-access';
+  var HUB_FORGOT_FN_URL = SUPABASE_URL + '/functions/v1/hub-forgot-password';
+
+  // Se veio de um app que redirecionou pra cá por falta de sessão
+  // (?next=https://topdealerdeva.albusdata.com.br), guarda a URL pra
+  // mandar a pessoa de volta assim que ela logar (ou já, se a sessão via
+  // cookie já for válida -- ver showApp()).
+  var NEXT_URL = (function(){
+    var v = new URLSearchParams(location.search).get('next');
+    if (!v) return null;
+    try {
+      var u = new URL(v);
+      // só aceita voltar pra um subdomínio da própria albusdata.com.br --
+      // nunca redirecionar às cegas pra uma URL vinda de fora.
+      if (u.hostname === 'albusdata.com.br' || u.hostname.endsWith('.albusdata.com.br')) return v;
+    } catch(e){}
+    return null;
+  })();
 
   // Apps do hub. `schema`/`table` só existem para apps já migrados para o
   // projeto consolidado -- os demais mostram "Em breve" até serem migrados.
@@ -415,9 +583,18 @@
 
   // ---------------- LOGIN ----------------
   var loginShell = document.getElementById('login-shell');
+  var forgotShell = document.getElementById('forgot-shell');
+  var mustchangeShell = document.getElementById('mustchange-shell');
   var appShell = document.getElementById('app-shell');
   var loginError = document.getElementById('login-error');
   var loginSubmit = document.getElementById('login-submit');
+
+  function esconderTodasAsTelas(){
+    loginShell.hidden = true;
+    forgotShell.hidden = true;
+    mustchangeShell.hidden = true;
+    appShell.hidden = true;
+  }
 
   document.getElementById('eye-toggle').addEventListener('click', function(){
     var f = document.getElementById('f-pass');
@@ -452,22 +629,142 @@
   });
 
   function showLoginScreen(){
+    esconderTodasAsTelas();
     loginShell.hidden = false;
-    appShell.hidden = true;
   }
+
+  // ---------------- ESQUECI MINHA SENHA (código de 6 dígitos, autoatendimento) ----------------
+  document.getElementById('link-esqueci-senha').addEventListener('click', function(e){
+    e.preventDefault();
+    esconderTodasAsTelas();
+    forgotShell.hidden = false;
+    mostrarPassoForgot('email');
+  });
+
+  var forgotEmailAtual = '';
+  var forgotCodigoAtual = '';
+
+  function mostrarPassoForgot(passo){
+    ['email','code','newpass','done'].forEach(function(p){
+      document.getElementById('forgot-step-' + p).hidden = (p !== passo);
+    });
+  }
+  function chamarForgot(body){
+    return fetch(HUB_FORGOT_FN_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    }).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, data: j }; }); });
+  }
+
+  document.getElementById('forgot-back-1').addEventListener('click', showLoginScreen);
+  document.getElementById('forgot-done-voltar').addEventListener('click', showLoginScreen);
+  document.getElementById('forgot-trocar-email').addEventListener('click', function(){ mostrarPassoForgot('email'); });
+
+  document.getElementById('forgot-email-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    forgotEmailAtual = document.getElementById('forgot-email').value.trim();
+    var btn = document.getElementById('forgot-email-submit');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    chamarForgot({ action: 'request_code', email: forgotEmailAtual }).then(function(){
+      btn.disabled = false; btn.textContent = 'Enviar código';
+      document.getElementById('forgot-email-shown').textContent = forgotEmailAtual;
+      mostrarPassoForgot('code');
+    });
+  });
+
+  document.getElementById('forgot-reenviar').addEventListener('click', function(){
+    chamarForgot({ action: 'request_code', email: forgotEmailAtual }).then(function(){ toast('Código reenviado.'); });
+  });
+
+  document.getElementById('forgot-code-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var errEl = document.getElementById('forgot-code-error');
+    errEl.hidden = true;
+    var codigo = document.getElementById('forgot-code').value.trim();
+    if (codigo.length !== 6) { errEl.textContent = 'Digite os 6 dígitos do código.'; errEl.hidden = false; return; }
+    var btn = document.getElementById('forgot-code-submit');
+    btn.disabled = true; btn.textContent = 'Verificando…';
+    chamarForgot({ action: 'verify_code', email: forgotEmailAtual, code: codigo }).then(function(res){
+      btn.disabled = false; btn.textContent = 'Confirmar código';
+      if (!res.ok) { errEl.textContent = res.data.error || 'Código inválido ou expirado.'; errEl.hidden = false; return; }
+      forgotCodigoAtual = codigo;
+      mostrarPassoForgot('newpass');
+    });
+  });
+
+  document.getElementById('forgot-newpass-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var errEl = document.getElementById('forgot-newpass-error');
+    errEl.hidden = true;
+    var p1 = document.getElementById('forgot-pass').value;
+    var p2 = document.getElementById('forgot-pass-confirm').value;
+    if (p1.length < 8) { errEl.textContent = 'A senha deve ter pelo menos 8 caracteres.'; errEl.hidden = false; return; }
+    if (p1 !== p2) { errEl.textContent = 'As senhas não coincidem.'; errEl.hidden = false; return; }
+    var btn = document.getElementById('forgot-newpass-submit');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    chamarForgot({ action: 'set_new_password', email: forgotEmailAtual, code: forgotCodigoAtual, newPassword: p1 }).then(function(res){
+      btn.disabled = false; btn.textContent = 'Salvar nova senha';
+      if (!res.ok) { errEl.textContent = res.data.error || 'Não foi possível redefinir. Peça um novo código.'; errEl.hidden = false; return; }
+      document.getElementById('forgot-pass').value = '';
+      document.getElementById('forgot-pass-confirm').value = '';
+      mostrarPassoForgot('done');
+    });
+  });
+
+  // ---------------- TROCA DE SENHA OBRIGATÓRIA (login com senha temporária) ----------------
+  var sessaoPendenteMustChange = null;
+  document.getElementById('mustchange-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var errEl = document.getElementById('mustchange-error');
+    errEl.hidden = true;
+    var p1 = document.getElementById('mustchange-pass').value;
+    var p2 = document.getElementById('mustchange-pass-confirm').value;
+    if (p1.length < 8) { errEl.textContent = 'A senha deve ter pelo menos 8 caracteres.'; errEl.hidden = false; return; }
+    if (p1 !== p2) { errEl.textContent = 'As senhas não coincidem.'; errEl.hidden = false; return; }
+    var btn = document.getElementById('mustchange-submit');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    sb.auth.updateUser({ password: p1 }).then(function(res){
+      if (res.error) {
+        btn.disabled = false; btn.textContent = 'Definir senha';
+        errEl.textContent = res.error.message || 'Erro ao salvar a senha.'; errEl.hidden = false;
+        return;
+      }
+      sb.from('contas').update({ must_change_password: false }).eq('id', sessaoPendenteMustChange.user.id).then(function(){
+        document.getElementById('mustchange-pass').value = '';
+        document.getElementById('mustchange-pass-confirm').value = '';
+        btn.disabled = false; btn.textContent = 'Definir senha';
+        showApp(sessaoPendenteMustChange);
+      });
+    });
+  });
 
   var estadoUsuario = null; // { uid, nome, email, filialNome, hubAdmin }
 
   function showApp(session){
-    loginShell.hidden = true;
-    appShell.hidden = false;
     var uid = session.user.id;
 
     sb.from('contas')
-      .select('hub_admin, pessoas(nome, email, filiais(nome))')
+      .select('hub_admin, must_change_password, pessoas(nome, email, filiais(nome))')
       .eq('id', uid)
       .maybeSingle()
       .then(function(res){
+        // Senha temporária ainda não trocada -- trava aqui, nem o resto do
+        // Hub nem o redirect pra outro app acontecem antes disso (mesmo
+        // comportamento do TrocaSenhaObrigatoriaScreen da Ferramentaria).
+        if (res.data && res.data.must_change_password) {
+          sessaoPendenteMustChange = session;
+          esconderTodasAsTelas();
+          mustchangeShell.hidden = false;
+          return;
+        }
+
+        // Já tem sessão válida e a pessoa veio de outro app -- manda de
+        // volta pra lá direto, sem nem mostrar o Hub. O app de destino vai
+        // enxergar essa mesma sessão pelo cookie compartilhado.
+        if (NEXT_URL) { window.location.replace(NEXT_URL); return; }
+
+        esconderTodasAsTelas();
+        appShell.hidden = false;
+
         var pessoaNome = session.user.email;
         var filialNome = '';
         var hubAdmin = false;
@@ -676,7 +973,7 @@
       if (!confirm('Gerar uma nova senha temporária para ' + ds.nome + ' e enviar por e-mail (' + ds.email + ')?')) return;
       chamarHub({ action: 'resetar_senha', conta_id: ds.conta }).then(function(res){
         if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
-        toast(res.data.email_enviado === false ? 'Senha redefinida, mas o e-mail falhou -- avise a pessoa por outro meio.' : 'Nova senha enviada por e-mail para ' + res.data.email + '.');
+        mostrarSenhaGerada(res.data.email, res.data.senha_temporaria, res.data.email_enviado !== false);
       });
       return;
     }
@@ -744,6 +1041,22 @@
   document.getElementById('edit-modal-cancel').addEventListener('click', fecharEdicao);
   editModal.addEventListener('click', function(e){ if (e.target === editModal) fecharEdicao(); });
 
+  // ---------------- MODAL: SENHA TEMPORÁRIA (reforço na tela) ----------------
+  var senhaModal = document.getElementById('senha-modal');
+  function mostrarSenhaGerada(email, senha, jaEnviouEmail){
+    document.getElementById('senha-modal-note').textContent = jaEnviouEmail
+      ? 'Essa senha já foi enviada por e-mail para ' + email + '. Aqui embaixo é só um reforço, caso o e-mail não chegue -- a pessoa deve trocá-la no primeiro acesso.'
+      : 'O e-mail para ' + email + ' falhou ao enviar -- avise a pessoa por outro meio com a senha abaixo. Ela deve trocá-la no primeiro acesso.';
+    document.getElementById('senha-modal-valor').textContent = senha;
+    senhaModal.hidden = false;
+  }
+  document.getElementById('senha-modal-close').addEventListener('click', function(){ senhaModal.hidden = true; });
+  document.getElementById('senha-modal-ok').addEventListener('click', function(){ senhaModal.hidden = true; });
+  document.getElementById('senha-modal-copy').addEventListener('click', function(){
+    var v = document.getElementById('senha-modal-valor').textContent;
+    navigator.clipboard.writeText(v).then(function(){ toast('Senha copiada.'); });
+  });
+
   document.getElementById('edit-modal-save').addEventListener('click', function(){
     if (!pessoaEmEdicaoId) return;
     var p = gestaoDados.pessoas.find(function(x){ return x.id === pessoaEmEdicaoId; });
@@ -766,6 +1079,7 @@
     var contaIdAtual = conta ? conta.id : null;
     var loginFoiCriado = false;
     var emailFalhou = false;
+    var senhaCriada = null;
 
     // sequencial (não paralelo) -- a primeira concessão pode criar o login,
     // e as chamadas seguintes precisam do conta_id que só existe depois disso
@@ -775,7 +1089,7 @@
         saveBtn.textContent = 'Salvar';
         fecharEdicao();
         if (loginFoiCriado) {
-          toast(emailFalhou ? 'Acesso salvo, login criado, mas o e-mail de boas-vindas falhou.' : 'Acesso salvo. Login criado e senha enviada por e-mail para ' + p.email + '.');
+          mostrarSenhaGerada(p.email, senhaCriada, !emailFalhou);
         } else {
           toast('Acesso atualizado.');
         }
@@ -789,7 +1103,7 @@
       chamarHub(body).then(function(res){
         if (!res.ok) { toast('Erro ao salvar "' + m.app + '": ' + (res.data.error || '')); saveBtn.disabled = false; saveBtn.textContent = 'Salvar'; return; }
         if (res.data.conta_id) contaIdAtual = res.data.conta_id;
-        if (res.data.login_criado) loginFoiCriado = true;
+        if (res.data.login_criado) { loginFoiCriado = true; senhaCriada = res.data.senha_temporaria; }
         if (res.data.email_enviado === false) emailFalhou = true;
         processar(i + 1);
       });
