@@ -82,6 +82,8 @@
   .app-check-row label{ font-size:.85rem; font-weight:600; color:var(--ink-soft); flex:1; cursor:pointer; }
   .app-check-row.disabled label{ color:var(--muted-2); cursor:not-allowed; }
   .app-check-row .em-breve{ font-size:.66rem; font-weight:700; color:var(--muted-2); background:var(--surface-2); padding:2px 8px; border-radius:999px; }
+  .modal-section-label{ font-size:.72rem; font-weight:700; color:var(--muted-2); text-transform:uppercase; letter-spacing:.03em; margin:18px 0 6px; }
+  .filiais-wrap{ max-height:190px; overflow-y:auto; border:1px solid var(--line-soft); border-radius:10px; padding:2px; }
 
   .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:var(--r-btn); border:1px solid transparent; cursor:pointer; font-weight:700; font-size:.88rem; padding:12px 18px; transition:background .15s ease, border-color .15s ease, transform .1s ease, color .15s ease; }
   .btn:active{ transform:translateY(1px); }
@@ -462,6 +464,9 @@
     </div>
     <p class="modal-note" id="edit-modal-note">Marque os apps que essa pessoa deve acessar. Se for a primeira vez, o login é criado na hora e a senha é enviada por e-mail — não precisa de nenhum passo separado.</p>
     <div id="edit-modal-apps" style="display:flex;flex-direction:column;gap:2px;margin-bottom:18px;"></div>
+    <div class="modal-section-label">Filiais com acesso</div>
+    <p class="modal-note" style="margin:0 0 8px;">Vale pra qualquer app dela — marque uma, duas, três ou quantas precisar.</p>
+    <div id="edit-modal-filiais" class="filiais-wrap" style="display:flex;flex-direction:column;gap:2px;margin-bottom:18px;"></div>
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost" id="edit-modal-cancel">Cancelar</button>
       <button type="button" class="btn btn-primary" id="edit-modal-save">Salvar</button>
@@ -888,6 +893,15 @@
     var lista = (gestaoDados.acessos || {})[appKey] || [];
     return lista.find(function(a){ return a.id === contaId; }) || null;
   }
+  function filiaisDaPessoa(pessoaId){
+    return (gestaoDados.pessoa_filiais || [])
+      .filter(function(pf){ return pf.pessoa_id === pessoaId; })
+      .map(function(pf){ return pf.filial_id; });
+  }
+  function nomeFilial(filialId){
+    var f = (gestaoDados.filiais || []).find(function(x){ return x.id === filialId; });
+    return f ? f.nome : filialId;
+  }
 
   function pessoasFiltradas(){
     var q = estadoGestao.busca.trim().toLowerCase();
@@ -945,6 +959,11 @@
       ? '<span style="font-size:.76rem;color:var(--ink-soft);">' + escapeHtml(appsComAcesso.join(', ')) + '</span>'
       : '<span style="font-size:.76rem;color:var(--muted-2);">nenhum</span>';
 
+    var filiaisIds = filiaisDaPessoa(p.id);
+    var filialCell = filiaisIds.length
+      ? '<span style="font-size:.76rem;color:var(--ink-soft);">' + escapeHtml(filiaisIds.map(nomeFilial).join(', ')) + '</span>'
+      : '<span style="font-size:.76rem;color:var(--muted-2);">nenhuma</span>';
+
     var acoesHtml = '<button data-action="editar" data-pessoa="' + p.id + '" title="Editar acesso"><svg width="13" height="13"><use href="#i-pencil"/></svg></button>';
     var podeResetar = !!conta && !!p.email;
     acoesHtml += '<button data-action="resetar_senha" data-conta="' + (conta ? conta.id : '') + '" data-email="' + escapeHtml(p.email || '') + '" data-nome="' + escapeHtml(p.nome) + '" title="' + (podeResetar ? 'Redefinir senha' : 'Sem login ainda') + '"' + (podeResetar ? '' : ' disabled') + '><svg width="13" height="13"><use href="#i-key"/></svg></button>';
@@ -959,7 +978,7 @@
         '<span class="avatar" style="width:32px;height:32px;font-size:.7rem;background:' + corAvatar(p.nome) + '">' + iniciais(p.nome) + '</span>' +
         '<div><div class="name">' + escapeHtml(p.nome) + '</div><div class="email">' + email + '</div></div>' +
       '</div></td>' +
-      '<td class="gestao-cargo">' + (p.cargo ? escapeHtml(p.cargo) : '—') + '</td>' +
+      '<td class="gestao-cargo"' + (p.cargo ? ' title="' + escapeHtml(p.cargo) + '"' : '') + '>' + filialCell + '</td>' +
       '<td>' + statusCell + '</td>' +
       '<td>' + acessoCell + '</td>' +
       '<td><div class="gestao-actions">' + acoesHtml + '</div></td>' +
@@ -1032,6 +1051,13 @@
         (marcado ? ' checked' : '') + (podeEditar ? '' : ' disabled') + '><label for="chk-app-' + a.id + '">' + escapeHtml(a.name) + '</label></div>';
     }).join('');
 
+    var filiaisAtuais = new Set(filiaisDaPessoa(p.id));
+    var wrapFiliais = document.getElementById('edit-modal-filiais');
+    wrapFiliais.innerHTML = (gestaoDados.filiais || []).map(function(f){
+      return '<div class="app-check-row"><input type="checkbox" id="chk-filial-' + f.id + '" data-filial-id="' + f.id + '"' +
+        (filiaisAtuais.has(f.id) ? ' checked' : '') + (podeEditar ? '' : ' disabled') + '><label for="chk-filial-' + f.id + '">' + escapeHtml(f.nome) + '</label></div>';
+    }).join('') || '<p class="modal-note" style="margin:0;">Nenhuma filial cadastrada.</p>';
+
     document.getElementById('edit-modal-save').disabled = !podeEditar;
     editModal.hidden = false;
   }
@@ -1067,9 +1093,22 @@
       var appId = chk.getAttribute('data-app-id');
       var tinhaAntes = conta && !!acessoApp(appId, conta.id);
       if (chk.checked !== tinhaAntes) {
-        mudancas.push({ app: appId, conceder: chk.checked });
+        mudancas.push({ tipo: 'app', app: appId, conceder: chk.checked });
       }
     });
+
+    // Filiais são independentes de login/app -- comparação de conjunto, não
+    // por item, pq o checklist pode marcar/desmarcar várias de uma vez.
+    var filiaisAntes = new Set(filiaisDaPessoa(p.id));
+    var filiaisChecks = document.querySelectorAll('#edit-modal-filiais input[type=checkbox]:not(:disabled)');
+    var filiaisDepois = [];
+    Array.prototype.forEach.call(filiaisChecks, function(chk){
+      if (chk.checked) filiaisDepois.push(chk.getAttribute('data-filial-id'));
+    });
+    var filiaisMudaram = filiaisDepois.length !== filiaisAntes.size ||
+      filiaisDepois.some(function(id){ return !filiaisAntes.has(id); });
+    if (filiaisMudaram) mudancas.push({ tipo: 'filiais', ids: filiaisDepois });
+
     if (mudancas.length === 0) { fecharEdicao(); return; }
 
     var saveBtn = document.getElementById('edit-modal-save');
@@ -1097,6 +1136,13 @@
         return;
       }
       var m = mudancas[i];
+      if (m.tipo === 'filiais') {
+        chamarHub({ action: 'salvar_filiais', pessoa_id: p.id, filial_ids: m.ids }).then(function(res){
+          if (!res.ok) { toast('Erro ao salvar filiais: ' + (res.data.error || '')); saveBtn.disabled = false; saveBtn.textContent = 'Salvar'; return; }
+          processar(i + 1);
+        });
+        return;
+      }
       var body = m.conceder
         ? { action: 'conceder_acesso', app: m.app, conta_id: contaIdAtual, pessoa_id: p.id }
         : { action: 'revogar_acesso', app: m.app, conta_id: contaIdAtual };
