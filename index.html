@@ -223,11 +223,15 @@
      outros apps da Deva -- em vez de barra lateral estreita que fica
      escondendo texto/ícone em tela pequena. ── */
   @media (max-width:767px), (max-width:1200px) and (orientation:portrait) {
+    /* Fundo escuro é o tema fixo da lateral no desktop -- a barra inferior
+       dos outros apps da Deva é clara, então troca a paleta aqui também,
+       não só a posição. */
     .sidebar, .sidebar.is-expanded{
       position:fixed; left:0; right:0; bottom:0; top:auto; width:100%; height:auto;
       flex-direction:row; align-items:stretch;
       padding-bottom:env(safe-area-inset-bottom);
-      box-shadow:0 -2px 12px rgba(0,0,0,.18); z-index:200; transition:none;
+      background:var(--surface); border-top:1px solid var(--line-soft);
+      box-shadow:0 -2px 12px rgba(0,0,0,.05); z-index:200; transition:none;
     }
     .sidebar-head{ display:none; }
     .side-nav{ display:flex; flex-direction:row; flex:1; padding:0; overflow:visible; }
@@ -235,12 +239,16 @@
       flex:1; width:auto; height:56px; display:flex !important; flex-direction:column;
       align-items:center; justify-content:center; gap:3px; padding:0; margin:0;
       line-height:normal; font-size:10px; font-weight:700; text-align:center;
+      color:var(--muted-2); background:transparent;
     }
+    .nav-btn:hover{ background:transparent; color:var(--muted-2); }
+    .nav-btn.is-active{ background:transparent; color:var(--accent); }
     .nav-bar{ display:none; }
     .nav-icon{ position:static; transform:none; width:22px; height:22px; }
     .nav-label{ opacity:1 !important; font-size:10px; flex:none; }
     .user-footer{ border-top:none; padding:0; flex:0 0 60px; width:60px; }
-    .user-footer-btn{ height:56px; display:flex; align-items:center; justify-content:center; }
+    .user-footer-btn{ height:56px; display:flex; align-items:center; justify-content:center; background:transparent; }
+    .user-footer-btn.is-open{ background:var(--surface-2); }
     .user-footer-avatar{ position:static; transform:none; }
     .user-footer-text{ display:none; }
     main.content{ padding:20px 16px calc(56px + env(safe-area-inset-bottom) + 24px); }
@@ -554,10 +562,9 @@
       <label for="add-pessoa-matricula">Matrícula <span style="font-weight:400;color:var(--muted-2);">(deixe em branco se não tiver)</span></label>
       <input type="text" id="add-pessoa-matricula" placeholder="Ex: 1234">
     </div>
-    <div class="field">
-      <label for="add-pessoa-filial">Filial *</label>
-      <select id="add-pessoa-filial"><option value="">— Selecione —</option></select>
-    </div>
+    <div class="modal-section-label">Filiais *</div>
+    <p class="modal-note" style="margin:0 0 8px;">Marque uma, duas, três ou quantas precisar.</p>
+    <div id="add-pessoa-filiais" class="filiais-wrap" style="display:flex;flex-direction:column;gap:2px;margin-bottom:8px;"></div>
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost" id="add-pessoa-cancel">Cancelar</button>
       <button type="button" class="btn btn-primary" id="add-pessoa-save">Salvar</button>
@@ -1186,11 +1193,11 @@
     document.getElementById('add-pessoa-email').value = '';
     document.getElementById('add-pessoa-cargo').value = '';
     document.getElementById('add-pessoa-matricula').value = '';
-    var fsel = document.getElementById('add-pessoa-filial');
-    fsel.innerHTML = '<option value="">— Selecione —</option>' +
-      (gestaoDados && gestaoDados.filiais || []).map(function(f){
-        return '<option value="' + f.id + '">' + escapeHtml(f.nome) + '</option>';
-      }).join('');
+    var wrapFiliaisAdd = document.getElementById('add-pessoa-filiais');
+    wrapFiliaisAdd.innerHTML = (gestaoDados && gestaoDados.filiais || []).map(function(f){
+      return '<div class="app-check-row"><input type="checkbox" id="chk-add-filial-' + f.id + '" data-filial-id="' + f.id + '">' +
+        '<label for="chk-add-filial-' + f.id + '">' + escapeHtml(f.nome) + '</label></div>';
+    }).join('') || '<p class="modal-note" style="margin:0;">Nenhuma filial cadastrada.</p>';
     addPessoaModal.hidden = false;
   }
   function fecharModalAddPessoa(){ addPessoaModal.hidden = true; }
@@ -1204,11 +1211,14 @@
     var email = document.getElementById('add-pessoa-email').value.trim().toLowerCase();
     var cargo = document.getElementById('add-pessoa-cargo').value.trim();
     var matricula = document.getElementById('add-pessoa-matricula').value.trim();
-    var filialId = document.getElementById('add-pessoa-filial').value || null;
+    var filialIds = [];
+    Array.prototype.forEach.call(document.querySelectorAll('#add-pessoa-filiais input[type=checkbox]:checked'), function(chk){
+      filialIds.push(chk.getAttribute('data-filial-id'));
+    });
 
     if (!nome || !email) { toast('Nome e e-mail são obrigatórios.'); return; }
     if (email.indexOf('@') === -1) { toast('E-mail inválido.'); return; }
-    if (!filialId) { toast('Selecione a filial.'); return; }
+    if (!filialIds.length) { toast('Selecione ao menos uma filial.'); return; }
     if (!matricula) matricula = 'M' + Date.now().toString(36).toUpperCase();
 
     var saveBtn = document.getElementById('add-pessoa-save');
@@ -1222,19 +1232,29 @@
         saveBtn.textContent = 'Salvar';
         return;
       }
-      sb.from('pessoas').insert({ nome: nome, email: email, cargo: cargo || null, matricula: matricula, filial_id: filialId, ativo: true }).then(function(res2){
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Salvar';
+      // pessoas.filial_id é a filial "principal" (coluna legada, obrigatória) --
+      // a primeira marcada. O acesso multi-filial de fato mora em
+      // pessoa_filiais, então grava lá TODAS as marcadas (inclusive a primeira).
+      sb.from('pessoas').insert({ nome: nome, email: email, cargo: cargo || null, matricula: matricula, filial_id: filialIds[0], ativo: true })
+        .select('id').single().then(function(res2){
         if (res2.error) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Salvar';
           var msg = res2.error.message.indexOf('pessoas_filial_id_matricula_key') !== -1
             ? 'Já existe alguém com essa matrícula nessa filial. Troque a matrícula.'
             : res2.error.message;
           toast('Erro ao adicionar: ' + msg);
           return;
         }
-        toast('Pessoa adicionada ao diretório. Agora é só conceder o acesso pelo "Editar acesso".');
-        fecharModalAddPessoa();
-        carregarGestaoUsuarios();
+        var pessoaId = res2.data.id;
+        sb.from('pessoa_filiais').insert(filialIds.map(function(fid){ return { pessoa_id: pessoaId, filial_id: fid }; })).then(function(res3){
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Salvar';
+          if (res3.error) { toast('Pessoa criada, mas houve erro ao salvar filiais: ' + res3.error.message); }
+          else { toast('Pessoa adicionada ao diretório. Agora é só conceder o acesso pelo "Editar acesso".'); }
+          fecharModalAddPessoa();
+          carregarGestaoUsuarios();
+        });
       });
     });
   });
