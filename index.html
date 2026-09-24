@@ -451,6 +451,7 @@
               <input type="search" id="pessoas-search" placeholder="Buscar por nome ou e-mail...">
             </div>
             <div class="gestao-filter"><span>Filial</span><select id="pessoas-filial-filter"><option value="">Todas</option></select></div>
+            <button type="button" class="btn btn-primary" id="btn-add-pessoa" style="margin-left:auto;">+ Adicionar Pessoa</button>
           </div>
           <div class="gestao-tabs" id="gestao-tabs"></div>
           <div class="gestao-table-card">
@@ -493,6 +494,38 @@
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost" id="edit-modal-cancel">Cancelar</button>
       <button type="button" class="btn btn-primary" id="edit-modal-save">Salvar</button>
+    </div>
+   </div>
+  </div>
+</div>
+
+<!-- modal: adicionar pessoa nova ao diretório (RH ainda não sincronizou, ou é
+     terceirizado). Só cadastra nome/e-mail/cargo/filial -- não cria login;
+     pra dar acesso, depois de salvar aqui, usa o "Editar acesso" normal. -->
+<div class="modal-overlay" id="add-pessoa-modal" hidden>
+  <div class="modal-card">
+   <div class="modal-card-scroll">
+    <div class="modal-head"><h2>Adicionar Pessoa</h2><button type="button" class="modal-close" id="add-pessoa-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <p class="modal-note" id="add-pessoa-note">Isso só cadastra a pessoa no diretório — não cria login. Depois de salvar, ela aparece na lista e você concede o acesso pelo "Editar acesso" normalmente.</p>
+    <div class="fg" style="margin-bottom:14px;">
+      <label style="display:block;font-size:.76rem;font-weight:600;color:var(--muted-2);margin-bottom:4px;">Nome completo *</label>
+      <input type="text" id="add-pessoa-nome" class="input" placeholder="Nome completo" style="width:100%;">
+    </div>
+    <div class="fg" style="margin-bottom:14px;">
+      <label style="display:block;font-size:.76rem;font-weight:600;color:var(--muted-2);margin-bottom:4px;">E-mail *</label>
+      <input type="email" id="add-pessoa-email" class="input" placeholder="nome.sobrenome@deva.com.br" style="width:100%;">
+    </div>
+    <div class="fg" style="margin-bottom:14px;">
+      <label style="display:block;font-size:.76rem;font-weight:600;color:var(--muted-2);margin-bottom:4px;">Cargo</label>
+      <input type="text" id="add-pessoa-cargo" class="input" placeholder="Ex: Coordenadora de Treinamentos" style="width:100%;">
+    </div>
+    <div class="fg" style="margin-bottom:18px;">
+      <label style="display:block;font-size:.76rem;font-weight:600;color:var(--muted-2);margin-bottom:4px;">Filial</label>
+      <select id="add-pessoa-filial" class="input" style="width:100%;"><option value="">— Sem filial específica —</option></select>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="add-pessoa-cancel">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="add-pessoa-save">Salvar</button>
     </div>
    </div>
   </div>
@@ -1094,6 +1127,56 @@
   document.getElementById('edit-modal-close').addEventListener('click', fecharEdicao);
   document.getElementById('edit-modal-cancel').addEventListener('click', fecharEdicao);
   editModal.addEventListener('click', function(e){ if (e.target === editModal) fecharEdicao(); });
+
+  // ---------------- MODAL: ADICIONAR PESSOA (cadastro no diretório, sem login) ----------------
+  var addPessoaModal = document.getElementById('add-pessoa-modal');
+  function abrirModalAddPessoa(){
+    document.getElementById('add-pessoa-nome').value = '';
+    document.getElementById('add-pessoa-email').value = '';
+    document.getElementById('add-pessoa-cargo').value = '';
+    var fsel = document.getElementById('add-pessoa-filial');
+    fsel.innerHTML = '<option value="">— Sem filial específica —</option>' +
+      (gestaoDados && gestaoDados.filiais || []).map(function(f){
+        return '<option value="' + f.id + '">' + escapeHtml(f.nome) + '</option>';
+      }).join('');
+    addPessoaModal.hidden = false;
+  }
+  function fecharModalAddPessoa(){ addPessoaModal.hidden = true; }
+  document.getElementById('btn-add-pessoa').addEventListener('click', abrirModalAddPessoa);
+  document.getElementById('add-pessoa-close').addEventListener('click', fecharModalAddPessoa);
+  document.getElementById('add-pessoa-cancel').addEventListener('click', fecharModalAddPessoa);
+  addPessoaModal.addEventListener('click', function(e){ if (e.target === addPessoaModal) fecharModalAddPessoa(); });
+
+  document.getElementById('add-pessoa-save').addEventListener('click', function(){
+    var nome = document.getElementById('add-pessoa-nome').value.trim();
+    var email = document.getElementById('add-pessoa-email').value.trim().toLowerCase();
+    var cargo = document.getElementById('add-pessoa-cargo').value.trim();
+    var filialId = document.getElementById('add-pessoa-filial').value || null;
+
+    if (!nome || !email) { toast('Nome e e-mail são obrigatórios.'); return; }
+    if (email.indexOf('@') === -1) { toast('E-mail inválido.'); return; }
+
+    var saveBtn = document.getElementById('add-pessoa-save');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Salvando…';
+
+    sb.from('pessoas').select('id, nome').eq('email', email).maybeSingle().then(function(res){
+      if (res.data) {
+        toast('Já existe "' + res.data.nome + '" cadastrado com esse e-mail.');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Salvar';
+        return;
+      }
+      sb.from('pessoas').insert({ nome: nome, email: email, cargo: cargo || null, filial_id: filialId, ativo: true }).then(function(res2){
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Salvar';
+        if (res2.error) { toast('Erro ao adicionar: ' + res2.error.message); return; }
+        toast('Pessoa adicionada ao diretório. Agora é só conceder o acesso pelo "Editar acesso".');
+        fecharModalAddPessoa();
+        carregarGestaoUsuarios();
+      });
+    });
+  });
 
   // ---------------- MODAL: SENHA TEMPORÁRIA (reforço na tela) ----------------
   var senhaModal = document.getElementById('senha-modal');
