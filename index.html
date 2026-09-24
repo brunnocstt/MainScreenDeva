@@ -218,6 +218,37 @@
   .app-note{ font-size:.76rem; color:var(--muted); }
   [hidden]{ display:none !important; }
   @media (max-width:600px){ .sidebar.is-expanded{ width:220px; } main.content{ padding:24px 18px 48px; } }
+
+  /* ── RESPONSIVO (tablet/celular): sidebar vira barra inferior, igual aos
+     outros apps da Deva -- em vez de barra lateral estreita que fica
+     escondendo texto/ícone em tela pequena. ── */
+  @media (max-width:767px), (max-width:1200px) and (orientation:portrait) {
+    .sidebar, .sidebar.is-expanded{
+      position:fixed; left:0; right:0; bottom:0; top:auto; width:100%; height:auto;
+      flex-direction:row; align-items:stretch;
+      padding-bottom:env(safe-area-inset-bottom);
+      box-shadow:0 -2px 12px rgba(0,0,0,.18); z-index:200; transition:none;
+    }
+    .sidebar-head{ display:none; }
+    .side-nav{ display:flex; flex-direction:row; flex:1; padding:0; overflow:visible; }
+    .nav-btn{
+      flex:1; width:auto; height:56px; display:flex !important; flex-direction:column;
+      align-items:center; justify-content:center; gap:3px; padding:0; margin:0;
+      line-height:normal; font-size:10px; font-weight:700; text-align:center;
+    }
+    .nav-bar{ display:none; }
+    .nav-icon{ position:static; transform:none; width:22px; height:22px; }
+    .nav-label{ opacity:1 !important; font-size:10px; flex:none; }
+    .user-footer{ border-top:none; padding:0; flex:0 0 60px; width:60px; }
+    .user-footer-btn{ height:56px; display:flex; align-items:center; justify-content:center; }
+    .user-footer-avatar{ position:static; transform:none; }
+    .user-footer-text{ display:none; }
+    main.content{ padding:20px 16px calc(56px + env(safe-area-inset-bottom) + 24px); }
+    /* Tabela de usuários: em vez de espremer as colunas (o que empilha os
+       ícones de ação um sobre o outro), a tabela mantém a largura mínima e
+       passa a rolar na horizontal. */
+    table.pessoas{ min-width:640px; }
+  }
 </style>
 </head>
 <body>
@@ -1024,10 +1055,26 @@
       ? '<span style="font-size:.76rem;color:var(--ink-soft);">' + escapeHtml(appsComAcesso.join(', ')) + '</span>'
       : '<span style="font-size:.76rem;color:var(--muted-2);">nenhum</span>';
 
+    // Lista com nome de cada filial ocupava linha demais na tabela --
+    // resume pra "Todas as filiais" / "N filiais" e deixa a lista completa
+    // só no title (tooltip), junto com o cargo que já usava esse mesmo spot.
     var filiaisIds = filiaisDaPessoa(p.id);
-    var filialCell = filiaisIds.length
-      ? '<span style="font-size:.76rem;color:var(--ink-soft);">' + escapeHtml(filiaisIds.map(nomeFilial).join(', ')) + '</span>'
-      : '<span style="font-size:.76rem;color:var(--muted-2);">nenhuma</span>';
+    var totalFiliais = (gestaoDados.filiais || []).length;
+    var filialLabel;
+    if (!filiaisIds.length) {
+      filialLabel = '<span style="color:var(--muted-2);">nenhuma</span>';
+    } else if (totalFiliais && filiaisIds.length === totalFiliais) {
+      filialLabel = 'Todas as filiais';
+    } else if (filiaisIds.length === 1) {
+      filialLabel = escapeHtml(nomeFilial(filiaisIds[0]));
+    } else {
+      filialLabel = filiaisIds.length + ' filiais';
+    }
+    var filialCell = '<span style="font-size:.76rem;color:var(--ink-soft);">' + filialLabel + '</span>';
+    var tooltipParts = [];
+    if (p.cargo) tooltipParts.push(p.cargo);
+    if (filiaisIds.length > 1) tooltipParts.push(filiaisIds.map(nomeFilial).join(', '));
+    var tdTitleFilial = tooltipParts.length ? ' title="' + escapeHtml(tooltipParts.join(' — ')) + '"' : '';
 
     var acoesHtml = '<button data-action="editar" data-pessoa="' + p.id + '" title="Editar acesso"><svg width="13" height="13"><use href="#i-pencil"/></svg></button>';
     var podeResetar = !!conta && !!p.email;
@@ -1043,7 +1090,7 @@
         '<span class="avatar" style="width:32px;height:32px;font-size:.7rem;background:' + corAvatar(p.nome) + '">' + iniciais(p.nome) + '</span>' +
         '<div><div class="name">' + escapeHtml(p.nome) + '</div><div class="email">' + email + '</div></div>' +
       '</div></td>' +
-      '<td class="gestao-cargo"' + (p.cargo ? ' title="' + escapeHtml(p.cargo) + '"' : '') + '>' + filialCell + '</td>' +
+      '<td class="gestao-cargo"' + tdTitleFilial + '>' + filialCell + '</td>' +
       '<td>' + statusCell + '</td>' +
       '<td>' + acessoCell + '</td>' +
       '<td><div class="gestao-actions">' + acoesHtml + '</div></td>' +
