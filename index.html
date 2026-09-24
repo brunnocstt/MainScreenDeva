@@ -167,6 +167,11 @@
   .gestao-filter{ display:flex; flex-direction:column; gap:4px; }
   .gestao-filter span{ font-size:.6rem; font-weight:700; color:var(--muted-2); text-transform:uppercase; letter-spacing:.06em; padding-left:3px; }
   .gestao-filter select{ border:1.5px solid var(--line); border-radius:9px; padding:7px 10px; font-size:.78rem; font-weight:600; color:var(--ink-soft); background:var(--surface); }
+  /* Busca, select de filial e botão de adicionar viviam com alturas
+     diferentes (cada um com seu próprio padding) -- padroniza os três na
+     mesma altura pra alinhar de fato, não só pelo "bottom" do flex. */
+  .gestao-search, .gestao-filter select{ height:38px; box-sizing:border-box; }
+  .gestao-toolbar .btn{ height:38px; padding:0 16px; }
   .gestao-tabs{ display:flex; gap:8px; margin-bottom:14px; }
   .gestao-tab{ all:unset; box-sizing:border-box; padding:7px 14px; border-radius:9px; cursor:pointer; font-size:.78rem; font-weight:700; border:1.5px solid var(--line); background:var(--surface); color:var(--muted); }
   .gestao-tab.is-active{ border-color:var(--accent); background:var(--accent-tint-10); color:var(--accent); }
@@ -199,6 +204,13 @@
   .gestao-table-foot{ padding:10px 16px; border-top:1px solid var(--line-soft); font-size:.76rem; color:var(--muted-2); font-weight:500; }
 
   .badge-bloqueado{ display:inline-flex; align-items:center; gap:4px; font-size:.65rem; font-weight:700; color:#B91C1C; background:#FEF2F2; border-radius:999px; padding:3px 9px; }
+
+  .filial-tooltip{ position:fixed; z-index:400; background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow-lift); padding:10px 12px; min-width:160px; max-width:260px; pointer-events:none; opacity:0; transform:translateY(-4px); transition:opacity .12s ease, transform .12s ease; }
+  .filial-tooltip.is-visible{ opacity:1; transform:translateY(0); }
+  .filial-tooltip-head{ font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted-2); margin-bottom:6px; }
+  .filial-tooltip ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+  .filial-tooltip li{ font-size:.82rem; font-weight:600; color:var(--ink-soft); display:flex; align-items:center; gap:7px; }
+  .filial-tooltip li::before{ content:''; width:5px; height:5px; border-radius:999px; background:var(--accent); flex-shrink:0; }
 
   .app-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(226px,1fr)); gap:22px; max-width:1180px; margin:0 auto; }
   .app-card{ min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-card); display:flex; flex-direction:column; transition:box-shadow .18s ease, transform .18s ease; }
@@ -486,11 +498,17 @@
           <h1 class="gestao-title">Gestão de Usuários</h1>
           <p class="gestao-sub" id="gestao-sub">carregando…</p>
           <div class="gestao-toolbar">
-            <div class="gestao-search"><svg width="14" height="14"><use href="#i-search"/></svg>
-              <input type="search" id="pessoas-search" placeholder="Buscar por nome ou e-mail...">
+            <div class="gestao-filter" style="flex:1;min-width:180px;">
+              <span>Buscar</span>
+              <div class="gestao-search"><svg width="14" height="14"><use href="#i-search"/></svg>
+                <input type="search" id="pessoas-search" placeholder="Buscar por nome ou e-mail...">
+              </div>
             </div>
             <div class="gestao-filter"><span>Filial</span><select id="pessoas-filial-filter"><option value="">Todas</option></select></div>
-            <button type="button" class="btn btn-primary" id="btn-add-pessoa" style="margin-left:auto;">+ Adicionar Pessoa</button>
+            <div class="gestao-filter" style="margin-left:auto;">
+              <span>&nbsp;</span>
+              <button type="button" class="btn btn-primary" id="btn-add-pessoa">+ Adicionar Pessoa</button>
+            </div>
           </div>
           <div class="gestao-tabs" id="gestao-tabs"></div>
           <div class="gestao-table-card">
@@ -511,6 +529,8 @@
 <div class="user-popup" id="user-popup" hidden>
   <button class="danger" id="popup-logout"><svg width="14" height="14"><use href="#i-logout"/></svg> Sair</button>
 </div>
+
+<div class="filial-tooltip" id="filial-tooltip" hidden></div>
 
 <!-- modal: editar acesso da pessoa (é aqui que login é criado, se ainda não
      existir -- não tem botão "criar login" separado em lugar nenhum) -->
@@ -1062,26 +1082,22 @@
       ? '<span style="font-size:.76rem;color:var(--ink-soft);">' + escapeHtml(appsComAcesso.join(', ')) + '</span>'
       : '<span style="font-size:.76rem;color:var(--muted-2);">nenhum</span>';
 
-    // Lista com nome de cada filial ocupava linha demais na tabela --
-    // resume pra "Todas as filiais" / "N filiais" e deixa a lista completa
-    // só no title (tooltip), junto com o cargo que já usava esse mesmo spot.
+    // Só a quantidade na célula -- passar o mouse abre um popover próprio
+    // (não o title feio do navegador) com a lista de filiais.
     var filiaisIds = filiaisDaPessoa(p.id);
     var totalFiliais = (gestaoDados.filiais || []).length;
-    var filialLabel;
+    var filialCell;
     if (!filiaisIds.length) {
-      filialLabel = '<span style="color:var(--muted-2);">nenhuma</span>';
-    } else if (totalFiliais && filiaisIds.length === totalFiliais) {
-      filialLabel = 'Todas as filiais';
-    } else if (filiaisIds.length === 1) {
-      filialLabel = escapeHtml(nomeFilial(filiaisIds[0]));
+      filialCell = '<span style="font-size:.76rem;color:var(--muted-2);">nenhuma</span>';
     } else {
-      filialLabel = filiaisIds.length + ' filiais';
+      var qtdLabel = filiaisIds.length + (filiaisIds.length === 1 ? ' filial' : ' filiais');
+      var tipData = escapeHtml(JSON.stringify({
+        nomes: filiaisIds.map(nomeFilial),
+        todas: !!(totalFiliais && filiaisIds.length === totalFiliais)
+      }));
+      filialCell = '<span class="filial-hover" data-tip="' + tipData + '" style="font-size:.76rem;color:var(--ink-soft);border-bottom:1px dotted var(--muted-2);cursor:default;">' + qtdLabel + '</span>';
     }
-    var filialCell = '<span style="font-size:.76rem;color:var(--ink-soft);">' + filialLabel + '</span>';
-    var tooltipParts = [];
-    if (p.cargo) tooltipParts.push(p.cargo);
-    if (filiaisIds.length > 1) tooltipParts.push(filiaisIds.map(nomeFilial).join(', '));
-    var tdTitleFilial = tooltipParts.length ? ' title="' + escapeHtml(tooltipParts.join(' — ')) + '"' : '';
+    var tdTitleFilial = p.cargo ? ' title="' + escapeHtml(p.cargo) + '"' : '';
 
     var acoesHtml = '<button data-action="editar" data-pessoa="' + p.id + '" title="Editar acesso"><svg width="13" height="13"><use href="#i-pencil"/></svg></button>';
     var podeResetar = !!conta && !!p.email;
@@ -1384,6 +1400,30 @@
     popup.hidden = false;
     userBtn.classList.add('is-open');
     document.addEventListener('mousedown', onDocClick);
+  });
+
+  // ---------------- HOVER: filiais com acesso (tabela de usuários) ----------------
+  var filialTip = document.getElementById('filial-tooltip');
+  document.getElementById('pessoas-tbody').addEventListener('mouseover', function(e){
+    var el = e.target.closest('.filial-hover');
+    if (!el || filialTip.contains(e.relatedTarget)) return;
+    var info;
+    try { info = JSON.parse(el.dataset.tip); } catch(err) { return; }
+    filialTip.innerHTML = '<div class="filial-tooltip-head">' + (info.todas ? 'Todas as filiais' : 'Filiais com acesso') + '</div>' +
+      '<ul>' + info.nomes.map(function(n){ return '<li>' + escapeHtml(n) + '</li>'; }).join('') + '</ul>';
+    var r = el.getBoundingClientRect();
+    filialTip.hidden = false;
+    var tipW = filialTip.offsetWidth;
+    var left = Math.min(r.left, window.innerWidth - tipW - 10);
+    filialTip.style.left = Math.max(10, left) + 'px';
+    filialTip.style.top = (r.bottom + 6) + 'px';
+    requestAnimationFrame(function(){ filialTip.classList.add('is-visible'); });
+  });
+  document.getElementById('pessoas-tbody').addEventListener('mouseout', function(e){
+    var el = e.target.closest('.filial-hover');
+    if (!el || el.contains(e.relatedTarget)) return;
+    filialTip.classList.remove('is-visible');
+    filialTip.hidden = true;
   });
 
 })();
