@@ -31,7 +31,15 @@
     + 'transition:transform .15s ease;}'
     + '.iris-bubble:hover{transform:scale(1.06);}'
     + '.iris-bubble svg{width:26px;height:26px;color:#fff;}'
+    + '.iris-online-dot{position:absolute;bottom:-2px;right:-2px;width:14px;height:14px;background:#22C55E;'
+    + 'border:2.5px solid #fff;border-radius:999px;}'
     + '@media (max-width:767px){.iris-bubble{bottom:80px;right:16px;width:50px;height:50px;}}'
+    + '.iris-teaser{position:fixed;right:84px;bottom:36px;background:#fff;color:#1E293B;font-size:12.5px;'
+    + 'font-weight:700;padding:9px 14px;border-radius:999px;box-shadow:0 6px 16px rgba(15,23,42,.16);'
+    + 'white-space:nowrap;z-index:9997;cursor:pointer;animation:iris-teaser-in .35s ease;'
+    + 'font-family:"Plus Jakarta Sans",system-ui,-apple-system,sans-serif;}'
+    + '@keyframes iris-teaser-in{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}'
+    + '@media (max-width:767px){.iris-teaser{bottom:94px;right:70px;font-size:11.5px;padding:7px 12px;}}'
     + '.iris-panel{position:fixed;right:20px;bottom:86px;width:360px;max-width:calc(100vw - 32px);'
     + 'height:520px;max-height:calc(100vh - 140px);background:#fff;border-radius:18px;'
     + 'box-shadow:0 22px 40px -18px rgba(15,23,42,.35),0 6px 14px rgba(15,23,42,.12);'
@@ -42,7 +50,8 @@
     + '.iris-head{background:linear-gradient(135deg,#1955FF,#7C3AED);color:#fff;padding:14px 16px;'
     + 'display:flex;align-items:center;gap:10px;flex-shrink:0;}'
     + '.iris-head-avatar{width:32px;height:32px;border-radius:999px;background:rgba(255,255,255,.2);'
-    + 'display:flex;align-items:center;justify-content:center;flex-shrink:0;}'
+    + 'display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}'
+    + '.iris-head-avatar .iris-online-dot{width:10px;height:10px;bottom:-1px;right:-1px;border-width:2px;}'
     + '.iris-head-text{flex:1;min-width:0;}'
     + '.iris-head-text b{display:block;font-size:14px;font-weight:800;}'
     + '.iris-head-text span{display:block;font-size:11px;opacity:.85;margin-top:1px;}'
@@ -62,6 +71,7 @@
     + '.iris-md-h{font-weight:800;font-size:13px;margin:2px 0 6px;color:#1955FF;}'
     + '.iris-msg-iris code{background:#F1F5F9;padding:1px 5px;border-radius:4px;font-size:12px;'
     + 'font-family:ui-monospace,Menlo,Consolas,monospace;}'
+    + '.iris-msg-iris a{color:#1955FF;font-weight:700;text-decoration:underline;}'
     + '.iris-md-table-wrap{overflow-x:auto;margin:0 0 8px;-webkit-overflow-scrolling:touch;}'
     + '.iris-md-table{border-collapse:collapse;font-size:12px;white-space:nowrap;}'
     + '.iris-md-table th,.iris-md-table td{border:1px solid #E2E8F0;padding:5px 8px;text-align:left;}'
@@ -102,30 +112,36 @@
   var ICON_RESET = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>';
 
   function montarDom() {
+    var teaser = document.createElement('div');
+    teaser.className = 'iris-teaser';
+    teaser.id = 'iris-teaser';
+    teaser.textContent = 'Pergunte à Iris';
+
     var bubble = document.createElement('button');
     bubble.className = 'iris-bubble';
     bubble.type = 'button';
     bubble.setAttribute('aria-label', 'Abrir a Iris');
-    bubble.innerHTML = ICON_IRIS;
+    bubble.innerHTML = ICON_IRIS + '<span class="iris-online-dot"></span>';
 
     var panel = document.createElement('div');
     panel.className = 'iris-panel';
     panel.innerHTML =
       '<div class="iris-head">' +
-        '<div class="iris-head-avatar">' + ICON_IRIS.replace('width="17" height="17"', 'width="18" height="18"') + '</div>' +
-        '<div class="iris-head-text"><b>Iris</b><span>Assistente Deva</span></div>' +
+        '<div class="iris-head-avatar">' + ICON_IRIS.replace('width="17" height="17"', 'width="18" height="18"') + '<span class="iris-online-dot"></span></div>' +
+        '<div class="iris-head-text"><b>Iris</b><span>Assistente de IA</span></div>' +
         '<button type="button" class="iris-reset" aria-label="Reiniciar conversa" title="Reiniciar conversa">' + ICON_RESET + '</button>' +
         '<button type="button" class="iris-close" aria-label="Fechar">' + ICON_CLOSE + '</button>' +
       '</div>' +
       '<div class="iris-body" id="iris-body"></div>' +
       '<div class="iris-foot">' +
-        '<textarea class="iris-input" id="iris-input" placeholder="Pergunte algo ou peça pra te levar a um critério…" rows="1"></textarea>' +
+        '<textarea class="iris-input" id="iris-input" placeholder="Pergunte à Iris…" rows="1"></textarea>' +
         '<button type="button" class="iris-send" id="iris-send">' + ICON_SEND + '</button>' +
       '</div>';
 
+    document.body.appendChild(teaser);
     document.body.appendChild(bubble);
     document.body.appendChild(panel);
-    return { bubble: bubble, panel: panel };
+    return { teaser: teaser, bubble: bubble, panel: panel };
   }
 
   function escapeHtml(s) {
@@ -140,6 +156,8 @@
   // resposta da IA nunca é interpretado como marcação de verdade.
   function markdownParaHtml(texto) {
     function inline(s) {
+      // Só http(s):// -- evita esquema tipo javascript: vazar num link clicável.
+      s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
       s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
       s = s.replace(/`(.+?)`/g, '<code>$1</code>');
       return s;
@@ -293,8 +311,9 @@
     function toggle() {
       aberto = !aberto;
       dom.panel.classList.toggle('iris-open', aberto);
-      if (aberto) input.focus();
+      if (aberto) { input.focus(); dom.teaser.remove(); }
     }
+    dom.teaser.addEventListener('click', toggle);
     dom.bubble.addEventListener('click', toggle);
     closeBtn.addEventListener('click', toggle);
     // Se o modelo recusar responder por algum motivo, essa recusa fica
