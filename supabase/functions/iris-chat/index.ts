@@ -8,7 +8,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.10';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!;
-const GEMINI_MODEL = 'gemini-3.8-flash';
+// Tenta nessa ordem -- o mais novo primeiro, caindo pra modelos mais
+// antigos/estáveis se o de cima estiver com fila (erro de alta demanda).
+const GEMINI_MODELOS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-2.5-flash'];
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -75,18 +77,26 @@ Deno.serve(async (req) => {
       { role: 'user', parts: [{ text: mensagem }] },
     ];
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents, generationConfig: { temperature: 0.4, maxOutputTokens: 500 } }),
-      }
-    );
-    const geminiJson = await geminiRes.json();
-    if (!geminiRes.ok) {
-      const msg = geminiJson?.error?.message || ('HTTP ' + geminiRes.status);
-      return new Response(JSON.stringify({ error: 'Erro na IA: ' + msg }), { status: 502, headers: CORS });
+    // Modelo novo às vezes fica com fila (erro de "alta demanda") -- tenta
+    // o principal e, se não der, cai pra um modelo mais antigo/estável em
+    // vez de devolver erro pra pessoa direto.
+    let geminiJson: any = null;
+    let ultimoErro = '';
+    for (const modelo of GEMINI_MODELOS) {
+      const tentativa = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents, generationConfig: { temperature: 0.4, maxOutputTokens: 500 } }),
+        }
+      );
+      const json = await tentativa.json();
+      if (tentativa.ok) { geminiJson = json; break; }
+      ultimoErro = json?.error?.message || ('HTTP ' + tentativa.status);
+    }
+    if (!geminiJson) {
+      return new Response(JSON.stringify({ error: 'Erro na IA: ' + ultimoErro }), { status: 502, headers: CORS });
     }
 
     let texto: string = geminiJson?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') || '';
