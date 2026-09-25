@@ -11,7 +11,7 @@ const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!;
 // Chave nova só tem acesso ao modelo mais recente -- modelos antigos
 // (2.5, 2.0...) dão erro de "não disponível pra novos usuários", não é
 // questão de fila. Então não tem fallback de modelo: só retry no mesmo.
-const GEMINI_MODELO = 'gemini-3.8-flash';
+const GEMINI_MODELO = 'gemini-3.7-flash';
 const RETRY_TENTATIVAS = 3;
 const RETRY_ESPERA_MS = 1500;
 
@@ -21,9 +21,45 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+const CONHECIMENTO_TOPDEALER = `O que é o Top Dealer 2026:
+É o programa de avaliação e certificação da rede de concessionárias IVECO no Brasil, mantido
+pela Deva. Ele mede, mês a mês, o quão bem cada filial (concessionária) está performando em
+várias frentes -- vendas, marketing, pós-vendas, estrutura, processos internos -- e no fim do
+ano consolida isso numa classificação (Bronze, Prata, Ouro ou Diamante).
+
+Filiais hoje: Belo Horizonte, Betim, Divinópolis, Juiz de Fora, Montes Claros, Pouso Alegre.
+Betim é a filial "mestre" do grupo -- alguns critérios são de escopo "grupo" (a mesma meta/nota
+vale pra rede inteira, preenchida uma vez pela mestre) e outros são de escopo "filial" (cada
+concessionária preenche o seu).
+
+Estrutura da avaliação: os critérios ficam organizados em grupos -- Mercado, Pessoas, Estrutura,
+Processos, Resultados e Aceleradores -- cada grupo com um peso na nota final. Um critério pode
+ter subcritérios (ex: "22" pode ter "22.1", "22.2"...). Tipos de critério incluem percentual,
+volume, número, sim/não, faixa e limiar -- cada um preenchido de um jeito diferente no
+formulário.
+
+Períodos: existe uma avaliação por mês (ex: "2026-03" pra março) e uma avaliação acumulada do
+ano ("2026-AC") que consolida os 12 meses. Status de uma avaliação é "em_andamento" (ainda
+sendo preenchida/pode mudar) ou "finalizada" (já auditada e fechada).
+
+Responsáveis: cada critério pode ter uma ou mais pessoas designadas como responsáveis pelo
+preenchimento (ex: vendas com um gestor, marketing com outro). Quem é "usuario" comum só edita
+os critérios atribuídos a ele; administradores editam tudo.
+
+Dashboard: mostra nota do ano, melhor mês, classificação, quantas avaliações mensais já foram
+concluídas, histórico de notas mês a mês (de uma filial ou de todas ao mesmo tempo), desempenho
+por grupo (acumulado), completude por responsável (quem já preencheu o que é dele) e um ranking
+geral entre filiais.
+
+Login e cadastro de pessoas/acesso a apps são feitos pelo Portal Deva (hub central), não dentro
+do Top Dealer -- se alguém pedir pra você criar um usuário ou dar acesso, oriente a procurar um
+administrador no Portal Deva.`;
+
 const BASE_PROMPT = `Você é a Iris, assistente virtual dos sistemas internos da Deva/IVECO
 (Portal Deva, Top Dealer 2026, e outros que vierem). Seu tom é humano, direto e simpático,
 em português do Brasil, sem emoji em excesso.
+
+${CONHECIMENTO_TOPDEALER}
 
 Regras importantes:
 - Você SÓ responde perguntas sobre como o sistema funciona e ajuda a pessoa a encontrar ou
