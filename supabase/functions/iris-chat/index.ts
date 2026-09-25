@@ -1,17 +1,18 @@
 // Assistente "Iris" -- responde perguntas sobre os sistemas Deva/IVECO e
 // sugere navegação até um critério/tela. NÃO escreve dado nenhum: só lê o
 // contexto que o cliente manda (índice de critérios do app atual) e devolve
-// texto + uma ação opcional de navegação. A chave da Gemini fica só aqui,
+// texto + uma ação opcional de navegação. A chave da IA fica só aqui,
 // nunca no código do navegador.
+//
+// Rodava no Gemini antes -- trocado pro Groq porque o gemini-3.8-flash
+// (único liberado pra chave nova) ficou horas devolvendo 503 UNAVAILABLE
+// de verdade (confirmado por log, não era bug de deploy).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.10';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!;
-// Testado na prática: essa chave só tem permissão pro 3.8-flash. O 2.5
-// deu "não disponível pra novos usuários" e o 3.7 deu "sem permissão" --
-// então não tem fallback de modelo, só retry no mesmo pra erro de fila.
-const GEMINI_MODELO = 'gemini-3.8-flash';
+const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY')!;
+const GROQ_MODELO = 'openai/gpt-oss-20b'; // modelo de produção do free tier do Groq
 const RETRY_TENTATIVAS = 3;
 const RETRY_ESPERA_MS = 1500;
 
@@ -82,8 +83,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
   try {
-    console.log('[iris-chat] invocação -- modelo:', GEMINI_MODELO,
-      '| GEMINI_API_KEY definida:', !!GEMINI_API_KEY, '| tamanho:', GEMINI_API_KEY?.length || 0);
+    console.log('[iris-chat] invocação -- modelo:', GROQ_MODELO,
+      '| GROQ_API_KEY definida:', !!GROQ_API_KEY, '| tamanho:', GROQ_API_KEY?.length || 0);
 
     const authHeader = req.headers.get('Authorization') || '';
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -109,46 +110,49 @@ Deno.serve(async (req) => {
         criteriosIndex.map((c: any) => `${c.cod_item} — ${c.nome}`).join('\n')
       : '\n\n(Esse app não passou uma lista de critérios navegáveis nesta conversa.)';
 
-    const contents = [
-      { role: 'user', parts: [{ text: BASE_PROMPT + `\n\nApp atual: ${appName}.` + listaCriterios }] },
-      { role: 'model', parts: [{ text: 'Entendido, sou a Iris. Pode perguntar.' }] },
+    const messages = [
+      { role: 'system', content: BASE_PROMPT + `\n\nApp atual: ${appName}.` + listaCriterios },
       ...historico.map((hItem: any) => ({
-        role: hItem.role === 'iris' ? 'model' : 'user',
-        parts: [{ text: String(hItem.text || '').slice(0, 2000) }],
+        role: hItem.role === 'iris' ? 'assistant' : 'user',
+        content: String(hItem.text || '').slice(0, 2000),
       })),
-      { role: 'user', parts: [{ text: mensagem }] },
+      { role: 'user', content: mensagem },
     ];
 
-    // Erro de "alta demanda" costuma durar só alguns segundos -- tenta de
-    // novo o mesmo modelo antes de desistir, em vez de devolver erro na
-    // primeira falha.
-    let geminiJson: any = null;
+    // Retry pra erro transitório (rate limit / capacidade momentânea) --
+    // erro definitivo (chave errada, modelo sem permissão) falha na hora.
+    let groqJson: any = null;
     let ultimoErro = '';
     for (let i = 0; i < RETRY_TENTATIVAS; i++) {
-      console.log('[iris-chat] tentativa', i + 1, 'de', RETRY_TENTATIVAS, '-- chamando', GEMINI_MODELO);
-      const tentativa = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODELO}:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents, generationConfig: { temperature: 0.4, maxOutputTokens: 500 } }),
-        }
-      );
+      console.log('[iris-chat] tentativa', i + 1, 'de', RETRY_TENTATIVAS, '-- chamando', GROQ_MODELO);
+      const tentativa = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + GROQ_API_KEY,
+        },
+        body: JSON.stringify({
+          model: GROQ_MODELO,
+          messages,
+          temperature: 0.4,
+          max_completion_tokens: 500,
+        }),
+      });
       const json = await tentativa.json();
       console.log('[iris-chat] resposta HTTP', tentativa.status, tentativa.ok ? '(ok)' : JSON.stringify(json?.error || json));
-      if (tentativa.ok) { geminiJson = json; break; }
+      if (tentativa.ok) { groqJson = json; break; }
       ultimoErro = json?.error?.message || ('HTTP ' + tentativa.status);
-      const ehTransitorio = /demand|overloaded|unavailable|503/i.test(ultimoErro);
+      const ehTransitorio = /rate.?limit|capacity|overloaded|unavailable|503|429/i.test(ultimoErro);
       if (!ehTransitorio) { console.log('[iris-chat] erro não-transitório, parando retry'); break; }
       if (i < RETRY_TENTATIVAS - 1) await new Promise(r => setTimeout(r, RETRY_ESPERA_MS));
     }
-    if (!geminiJson) {
+    if (!groqJson) {
       console.log('[iris-chat] desistiu depois de', RETRY_TENTATIVAS, 'tentativas. Último erro:', ultimoErro);
       return new Response(JSON.stringify({ error: 'Erro na IA: ' + ultimoErro }), { status: 502, headers: CORS });
     }
     console.log('[iris-chat] sucesso');
 
-    let texto: string = geminiJson?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') || '';
+    let texto: string = groqJson?.choices?.[0]?.message?.content || '';
     let navegarPara: string | null = null;
     const m = texto.match(/\[NAVEGAR:([^\]]+)\]/);
     if (m) {
