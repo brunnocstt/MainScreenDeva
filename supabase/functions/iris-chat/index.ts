@@ -8,10 +8,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.10';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!;
-// Chave nova só tem acesso ao modelo mais recente -- modelos antigos
-// (2.5, 2.0...) dão erro de "não disponível pra novos usuários", não é
-// questão de fila. Então não tem fallback de modelo: só retry no mesmo.
-const GEMINI_MODELO = 'gemini-3.7-flash';
+// Testado na prática: essa chave só tem permissão pro 3.8-flash. O 2.5
+// deu "não disponível pra novos usuários" e o 3.7 deu "sem permissão" --
+// então não tem fallback de modelo, só retry no mesmo pra erro de fila.
+const GEMINI_MODELO = 'gemini-3.8-flash';
 const RETRY_TENTATIVAS = 3;
 const RETRY_ESPERA_MS = 1500;
 
