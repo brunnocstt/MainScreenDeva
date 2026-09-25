@@ -119,13 +119,16 @@ comum), ache o item mais provável na lista abaixo (por nome/descrição, não s
 uma frase contando o que achou, e só depois, numa linha nova, escreva exatamente
 [NAVEGAR:<tela>:<cod_item exato>] -- ex: [NAVEGAR:avaliacao:22]. Nunca só a tag sem frase antes.
 
-Tela "metas" precisa de uma FILIAL selecionada pra funcionar. Se você (ou uma resposta anterior
-sua nesta conversa) não sabe qual filial usar, pergunte antes de navegar -- não chute. Quando a
-pessoa disser a filial (agora ou numa resposta a essa pergunta, olhe o histórico), inclua o nome
-EXATO dela (da lista de filiais abaixo) como terceiro campo da tag:
-[NAVEGAR:metas:<cod_item>:<nome exato da filial>] -- ex: [NAVEGAR:metas:22:Betim]. Sem esse
-terceiro campo, a navegação pra "metas" só funciona se a pessoa já tiver usado essa tela antes
-(ela lembra a última filial usada); com ele, você seleciona a filial certa e carrega direto.
+As duas telas ("metas" e "avaliacao") podem precisar de uma FILIAL pra funcionar. Se a resposta
+que vier depois da tag disser que não sabia qual filial usar (ou achou a errada), ou se você (ou
+uma resposta anterior sua nesta conversa) não sabe qual filial usar, pergunte antes de navegar --
+não chute. Quando a pessoa disser a filial (agora ou numa resposta a essa pergunta, olhe o
+histórico), inclua o nome EXATO dela (da lista de filiais abaixo) como terceiro campo da tag, em
+QUALQUER uma das duas telas: [NAVEGAR:<tela>:<cod_item>:<nome exato da filial>] -- ex:
+[NAVEGAR:metas:22:Betim] ou [NAVEGAR:avaliacao:22:Betim]. Sem esse terceiro campo, a navegação
+usa a filial que já estiver selecionada na tela (ou a do Dashboard, no caso de "avaliacao"); com
+ele, você troca pra filial certa e carrega direto -- sempre inclua esse campo se a pessoa já
+disse (nesta mensagem ou antes) qual filial quer, mesmo que a tela já tenha outra selecionada.
 
 IMPORTANTE: você FAZ a navegação você mesma com a tag; NUNCA responda só explicando os passos
 pra pessoa clicar sozinha ("basta selecionar...", "vá até..." etc) -- isso não é fazer o
