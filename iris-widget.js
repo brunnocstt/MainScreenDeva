@@ -53,8 +53,19 @@
     + 'background:#F8FAFC;}'
     + '.iris-msg{max-width:85%;font-size:13.5px;line-height:1.45;padding:9px 12px;border-radius:14px;'
     + 'white-space:pre-wrap;word-break:break-word;}'
-    + '.iris-msg-iris{align-self:flex-start;background:#fff;color:#1E293B;'
+    + '.iris-msg-iris{align-self:flex-start;background:#fff;color:#1E293B;white-space:normal;'
     + 'box-shadow:0 1px 2px rgba(15,23,42,.06);border-bottom-left-radius:4px;}'
+    + '.iris-msg-iris p{margin:0 0 8px;}'
+    + '.iris-msg-iris >:last-child{margin-bottom:0;}'
+    + '.iris-msg-iris ul,.iris-msg-iris ol{margin:0 0 8px;padding-left:18px;}'
+    + '.iris-msg-iris li{margin-bottom:2px;}'
+    + '.iris-md-h{font-weight:800;font-size:13px;margin:2px 0 6px;color:#1955FF;}'
+    + '.iris-msg-iris code{background:#F1F5F9;padding:1px 5px;border-radius:4px;font-size:12px;'
+    + 'font-family:ui-monospace,Menlo,Consolas,monospace;}'
+    + '.iris-md-table-wrap{overflow-x:auto;margin:0 0 8px;-webkit-overflow-scrolling:touch;}'
+    + '.iris-md-table{border-collapse:collapse;font-size:12px;white-space:nowrap;}'
+    + '.iris-md-table th,.iris-md-table td{border:1px solid #E2E8F0;padding:5px 8px;text-align:left;}'
+    + '.iris-md-table th{background:#F8FAFC;font-weight:700;}'
     + '.iris-msg-user{align-self:flex-end;background:#1955FF;color:#fff;border-bottom-right-radius:4px;}'
     + '.iris-msg-erro{align-self:flex-start;background:#FEF2F2;color:#B91C1C;border-bottom-left-radius:4px;}'
     + '.iris-typing{align-self:flex-start;display:flex;gap:4px;padding:10px 12px;background:#fff;'
@@ -123,10 +134,80 @@
     });
   }
 
+  // Parser de Markdown bem simples, só pro que o modelo costuma gerar
+  // (negrito, código, cabeçalho #, lista, tabela) -- sem lib externa.
+  // Escapa o texto ANTES de aplicar qualquer tag, então HTML que vier na
+  // resposta da IA nunca é interpretado como marcação de verdade.
+  function markdownParaHtml(texto) {
+    function inline(s) {
+      s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      s = s.replace(/`(.+?)`/g, '<code>$1</code>');
+      return s;
+    }
+    function celulas(linha) {
+      return linha.replace(/^\||\|$/g, '').split('|').map(function (c) { return c.trim(); });
+    }
+    function renderTabela(linhas) {
+      if (linhas.length < 2) return linhas.map(function (l) { return '<p>' + inline(l) + '</p>'; }).join('');
+      var cab = celulas(linhas[0]);
+      var corpo = linhas.slice(2).filter(function (l) { return l.length; });
+      var html = '<div class="iris-md-table-wrap"><table class="iris-md-table"><thead><tr>' +
+        cab.map(function (c) { return '<th>' + inline(c) + '</th>'; }).join('') + '</tr></thead><tbody>';
+      corpo.forEach(function (l) {
+        html += '<tr>' + celulas(l).map(function (c) { return '<td>' + inline(c) + '</td>'; }).join('') + '</tr>';
+      });
+      return html + '</tbody></table></div>';
+    }
+
+    var linhas = escapeHtml(texto).split('\n');
+    var html = '';
+    var emLista = null; // 'ul' | 'ol' | null
+    var linhasTabela = [];
+
+    function fecharLista() { if (emLista) { html += '</' + emLista + '>'; emLista = null; } }
+    function fecharTabela() { if (linhasTabela.length) { html += renderTabela(linhasTabela); linhasTabela = []; } }
+
+    linhas.forEach(function (linhaRaw) {
+      var linha = linhaRaw.trim();
+
+      if (/^\|.*\|$/.test(linha)) { fecharLista(); linhasTabela.push(linha); return; }
+      fecharTabela();
+
+      if (!linha) { fecharLista(); return; }
+
+      var mH = linha.match(/^#{1,4}\s+(.*)$/);
+      if (mH) { fecharLista(); html += '<div class="iris-md-h">' + inline(mH[1]) + '</div>'; return; }
+
+      var mLi = linha.match(/^[-*]\s+(.*)$/);
+      if (mLi) {
+        if (emLista !== 'ul') { fecharLista(); html += '<ul>'; emLista = 'ul'; }
+        html += '<li>' + inline(mLi[1]) + '</li>';
+        return;
+      }
+
+      var mOli = linha.match(/^\d+[.)]\s+(.*)$/);
+      if (mOli) {
+        if (emLista !== 'ol') { fecharLista(); html += '<ol>'; emLista = 'ol'; }
+        html += '<li>' + inline(mOli[1]) + '</li>';
+        return;
+      }
+
+      fecharLista();
+      html += '<p>' + inline(linha) + '</p>';
+    });
+    fecharLista();
+    fecharTabela();
+    return html;
+  }
+
   function addMsg(body, role, texto) {
     var div = document.createElement('div');
     div.className = 'iris-msg ' + (role === 'user' ? 'iris-msg-user' : role === 'erro' ? 'iris-msg-erro' : 'iris-msg-iris');
-    div.textContent = texto;
+    if (role === 'iris') {
+      div.innerHTML = markdownParaHtml(texto);
+    } else {
+      div.textContent = texto;
+    }
     body.appendChild(div);
     body.scrollTop = body.scrollHeight;
   }
