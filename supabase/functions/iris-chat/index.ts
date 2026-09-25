@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
           model: GROQ_MODELO,
           messages,
           temperature: 0.4,
-          max_completion_tokens: 500,
+          max_completion_tokens: 1200,
         }),
       });
       const json = await tentativa.json();
