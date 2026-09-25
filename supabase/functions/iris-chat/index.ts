@@ -272,6 +272,34 @@ Deno.serve(async (req) => {
     }
     if (!texto) texto = 'Desculpa, não consegui pensar numa resposta agora. Tenta reformular?';
 
+    // Detecção determinística de período (acumulada / mês) na conversa --
+    // o modelo (gratuito, menor) nem sempre lembra de incluir o 4º campo
+    // da tag por conta própria mesmo com a instrução no prompt; em vez de
+    // depender só dele pra algo que muda a query no banco, checa a
+    // conversa por palavra-chave e completa o campo se ele faltar.
+    if (navegarPara) {
+      const partesTag = navegarPara.split(':');
+      const telaTag = partesTag.length > 1 ? partesTag[0] : 'avaliacao';
+      if (telaTag === 'avaliacao' && (partesTag.length < 4 || !partesTag[3])) {
+        const textoBusca = (mensagem + ' ' + historicoTexto)
+          .toLowerCase()
+          .normalize('NFD').replace(/[̀-ͯ]/g, ''); // remove acentos
+        let periodoDetectado: string | null = null;
+        if (/acumulad|anual|do ano/.test(textoBusca)) {
+          periodoDetectado = 'acumulada';
+        } else {
+          const meses = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+          const achado = meses.find((mes) => textoBusca.includes(mes));
+          if (achado) periodoDetectado = achado;
+        }
+        if (periodoDetectado) {
+          while (partesTag.length < 3) partesTag.push(''); // garante o campo de filial existir (mesmo vazio)
+          partesTag[3] = periodoDetectado;
+          navegarPara = partesTag.join(':');
+        }
+      }
+    }
+
     return new Response(JSON.stringify({ resposta: texto, navegar_para: navegarPara }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     });
