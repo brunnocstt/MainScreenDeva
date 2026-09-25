@@ -128,9 +128,14 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const mensagem = String(body.mensagem || '').trim().slice(0, 2000);
-    const historico = Array.isArray(body.historico) ? body.historico.slice(-10) : [];
-    const criteriosIndex = Array.isArray(body.criteriosIndex) ? body.criteriosIndex.slice(0, 400) : [];
+    // Tier gratuito do Groq tem limite de 8000 tokens POR MINUTO -- esses
+    // cortes são rede de segurança (o cliente já devia mandar enxuto),
+    // mas sem eles um app com muitos critérios/descrição longa passa
+    // batido e a chamada é rejeitada de vez.
+    const mensagem = String(body.mensagem || '').trim().slice(0, 1000);
+    const historico = (Array.isArray(body.historico) ? body.historico.slice(-6) : [])
+      .map((h: any) => ({ role: h.role, text: String(h.text || '').slice(0, 600) }));
+    const criteriosIndex = Array.isArray(body.criteriosIndex) ? body.criteriosIndex.slice(0, 180) : [];
     const appName = String(body.appName || 'sistema').slice(0, 60);
     const usuarioNome = String(body.usuarioNome || '').trim().slice(0, 80);
 
@@ -146,7 +151,7 @@ Deno.serve(async (req) => {
       ? '\n\nCritérios disponíveis nesse app agora:\n' +
         criteriosIndex.map((c: any) => {
           let linha = `- ${c.cod_item} — ${c.nome}`;
-          if (c.descricao) linha += `\n  Descrição: ${c.descricao}`;
+          if (c.descricao) linha += `\n  Descrição: ${String(c.descricao).slice(0, 150)}`;
           if (c.meta != null) linha += `\n  Meta: ${c.meta}`;
           if (c.valor_atual != null) linha += `\n  Valor já preenchido nesta avaliação: ${c.valor_atual}`;
           else if (c.meta != null) linha += `\n  Ainda NÃO foi preenchido nesta avaliação.`;
