@@ -130,6 +130,13 @@ usa a filial que já estiver selecionada na tela (ou a do Dashboard, no caso de 
 ele, você troca pra filial certa e carrega direto -- sempre inclua esse campo se a pessoa já
 disse (nesta mensagem ou antes) qual filial quer, mesmo que a tela já tenha outra selecionada.
 
+Na tela "avaliacao" existe também a AVALIAÇÃO ACUMULADA (do ano inteiro, separada da mensal). Se
+a pessoa pedir a acumulada/anual, ou citar um mês diferente do atual, inclua isso como quarto
+campo da tag (só funciona em "avaliacao"): [NAVEGAR:avaliacao:<cod_item>:<filial ou vazio>:
+<acumulada|nome do mês>] -- ex: [NAVEGAR:avaliacao:22:Betim:acumulada] ou
+[NAVEGAR:avaliacao:22:Betim:agosto]. Sem esse campo, ela usa o mês atual. Se quiser passar o
+período mas não a filial, deixe o campo de filial vazio: [NAVEGAR:avaliacao:22::acumulada].
+
 IMPORTANTE: você FAZ a navegação você mesma com a tag; NUNCA responda só explicando os passos
 pra pessoa clicar sozinha ("basta selecionar...", "vá até..." etc) -- isso não é fazer o
 trabalho, é só descrever, e você tem a ferramenta pra fazer de verdade. Só explique manualmente

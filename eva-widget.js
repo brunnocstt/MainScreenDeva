@@ -12,12 +12,14 @@
  *     getCriteriosIndex: () => [{cod_item, nome, descricao?, meta?, valor_atual?}, ...],
  *     getFiliaisIndex: () => [{id, nome}, ...] (opcional -- pra ela saber os nomes exatos
  *       de filial que pode devolver na tag de navegação, ex: telas que dependem de filial),
- *     onNavigate: (tela, codItem, filialNome) => true (achou e destacou) | false (não achou,
- *       sem detalhe) | string (não achou, mas com o motivo pra pessoa corrigir -- ex: "tentei
- *       a filial X no mês Y, mas não existe avaliação"). Pode devolver Promise de qualquer um
- *       desses. "tela" é o que a Eva decidiu (ex: 'avaliacao', 'metas') -- o app decide o que
- *       suportar. "filialNome" é opcional (null se a Eva não citou uma filial) -- nome exato
- *       de getFiliaisIndex, pro app selecionar a filial certa antes de procurar o critério.
+ *     onNavigate: (tela, codItem, filialNome, periodoInfo) => true (achou e destacou) | false
+ *       (não achou, sem detalhe) | string (não achou, mas com o motivo pra pessoa corrigir --
+ *       ex: "tentei a filial X no mês Y, mas não existe avaliação"). Pode devolver Promise de
+ *       qualquer um desses. "tela" é o que a Eva decidiu (ex: 'avaliacao', 'metas') -- o app
+ *       decide o que suportar. "filialNome" é opcional (null se a Eva não citou uma filial) --
+ *       nome exato de getFiliaisIndex, pro app selecionar a filial certa antes de procurar o
+ *       critério. "periodoInfo" é opcional (null se não citado) -- string livre tipo
+ *       "acumulada" ou o nome de um mês, o app decide como interpretar.
  *   };
  *
  * Não escreve dado nenhum no sistema -- só conversa e chama onNavigate.
@@ -298,16 +300,20 @@
         // Formato "tela:cod_item" (ex: "metas:22"); se vier sem tela (jeito
         // antigo, só "22"), assume "avaliacao" pra não quebrar. Terceiro
         // campo opcional é o nome exato da filial (ex: "metas:22:Betim").
+        // Quarto campo opcional (só "avaliacao") é o período -- "acumulada"
+        // ou o nome de um mês (ex: "avaliacao:22:Betim:acumulada"). Campos
+        // podem vir vazios ("avaliacao:22::acumulada") pra pular a filial.
         var partesNav = String(json.navegar_para).split(':');
         var telaNav = partesNav.length > 1 ? partesNav[0] : 'avaliacao';
         var codItemNav = partesNav.length > 1 ? partesNav[1] : partesNav[0];
-        var filialNav = partesNav.length > 2 ? partesNav.slice(2).join(':') : null;
+        var filialNav = (partesNav.length > 2 && partesNav[2]) ? partesNav[2] : null;
+        var periodoNav = (partesNav.length > 3 && partesNav[3]) ? partesNav[3] : null;
         // onNavigate pode ser assíncrono (às vezes precisa abrir a
         // avaliação certa antes de destacar o critério na tela). Pode
         // devolver true (achou), false (não achou, sem detalhe) ou uma
         // string (não achou, mas com o motivo específico pra pessoa
         // corrigir -- ex: "tentei a filial X no mês Y, mas não existe").
-        var resultadoNav = CFG.onNavigate ? await CFG.onNavigate(telaNav, codItemNav, filialNav) : false;
+        var resultadoNav = CFG.onNavigate ? await CFG.onNavigate(telaNav, codItemNav, filialNav, periodoNav) : false;
         if (resultadoNav === false) {
           addMsg(body, 'iris', 'Não consegui destacar esse item na tela atual -- talvez precise abrir a avaliação certa primeiro.');
         } else if (typeof resultadoNav === 'string') {
