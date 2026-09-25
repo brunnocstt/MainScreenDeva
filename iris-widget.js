@@ -44,9 +44,9 @@
     + '.iris-head-text{flex:1;min-width:0;}'
     + '.iris-head-text b{display:block;font-size:14px;font-weight:800;}'
     + '.iris-head-text span{display:block;font-size:11px;opacity:.85;margin-top:1px;}'
-    + '.iris-close{background:none;border:none;color:#fff;opacity:.85;cursor:pointer;padding:4px;'
+    + '.iris-close,.iris-reset{background:none;border:none;color:#fff;opacity:.85;cursor:pointer;padding:4px;'
     + 'display:flex;flex-shrink:0;}'
-    + '.iris-close:hover{opacity:1;}'
+    + '.iris-close:hover,.iris-reset:hover{opacity:1;}'
     + '.iris-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;'
     + 'background:#F8FAFC;}'
     + '.iris-msg{max-width:85%;font-size:13.5px;line-height:1.45;padding:9px 12px;border-radius:14px;'
@@ -86,6 +86,7 @@
   var ICON_IRIS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 1 5 5v2a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/><path d="M8 14a6 6 0 0 0 8 0"/><circle cx="12" cy="12" r="10"/></svg>';
   var ICON_CLOSE = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
   var ICON_SEND = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+  var ICON_RESET = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>';
 
   function montarDom() {
     var bubble = document.createElement('button');
@@ -100,6 +101,7 @@
       '<div class="iris-head">' +
         '<div class="iris-head-avatar">' + ICON_IRIS.replace('width="17" height="17"', 'width="18" height="18"') + '</div>' +
         '<div class="iris-head-text"><b>Iris</b><span>Assistente Deva</span></div>' +
+        '<button type="button" class="iris-reset" aria-label="Reiniciar conversa" title="Reiniciar conversa">' + ICON_RESET + '</button>' +
         '<button type="button" class="iris-close" aria-label="Fechar">' + ICON_CLOSE + '</button>' +
       '</div>' +
       '<div class="iris-body" id="iris-body"></div>' +
@@ -139,7 +141,10 @@
 
   async function enviarMensagem(texto, body, input, sendBtn) {
     addMsg(body, 'user', texto);
-    historico.push({ role: 'user', text: texto });
+    // Manda só o histórico ANTERIOR a essa mensagem -- "mensagem" já é a
+    // atual, então incluir ela de novo no histórico duplicava o turno pro
+    // modelo. Só entra na lista depois de confirmado que deu certo.
+    var historicoParaEnviar = historico.slice(-10);
     input.value = '';
     input.style.height = 'auto';
     sendBtn.disabled = true;
@@ -157,7 +162,7 @@
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
         body: JSON.stringify({
           mensagem: texto,
-          historico: historico.slice(-10),
+          historico: historicoParaEnviar,
           criteriosIndex: criteriosIndex,
           appName: CFG.appName || 'sistema',
         }),
@@ -166,6 +171,7 @@
       typingEl.remove();
       if (!res.ok || json.error) throw new Error(json.error || 'Erro desconhecido.');
 
+      historico.push({ role: 'user', text: texto });
       addMsg(body, 'iris', json.resposta);
       historico.push({ role: 'iris', text: json.resposta });
 
@@ -189,8 +195,12 @@
     var input = dom.panel.querySelector('#iris-input');
     var sendBtn = dom.panel.querySelector('#iris-send');
     var closeBtn = dom.panel.querySelector('.iris-close');
+    var resetBtn = dom.panel.querySelector('.iris-reset');
 
-    addMsg(body, 'iris', 'Oi, eu sou a Iris! Posso responder dúvidas sobre o sistema ou te levar até um critério específico. É só perguntar.');
+    function saudacao() {
+      addMsg(body, 'iris', 'Oi, eu sou a Iris! Posso responder dúvidas sobre o sistema ou te levar até um critério específico. É só perguntar.');
+    }
+    saudacao();
 
     function toggle() {
       aberto = !aberto;
@@ -199,6 +209,14 @@
     }
     dom.bubble.addEventListener('click', toggle);
     closeBtn.addEventListener('click', toggle);
+    // Se o modelo recusar responder por algum motivo, essa recusa fica
+    // salva no histórico e ele repete ela pra sempre depois -- reiniciar
+    // limpa tudo (memória + tela) e a conversa volta a funcionar.
+    resetBtn.addEventListener('click', function () {
+      historico = [];
+      body.innerHTML = '';
+      saudacao();
+    });
 
     function tentarEnviar() {
       var texto = input.value.trim();
