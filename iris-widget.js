@@ -10,9 +10,10 @@
  *     getAccessToken: async () => (await sb.auth.getSession()).data.session?.access_token,
  *     getUserName: () => 'Primeiro nome' (opcional -- pra ela chamar a pessoa pelo nome),
  *     getCriteriosIndex: () => [{cod_item, nome, descricao?, meta?, valor_atual?}, ...],
- *     onNavigate: (codItem) => true (achou e destacou) | false (não achou, sem detalhe) |
+ *     onNavigate: (tela, codItem) => true (achou e destacou) | false (não achou, sem detalhe) |
  *       string (não achou, mas com o motivo pra pessoa corrigir -- ex: "tentei a filial X
  *       no mês Y, mas não existe avaliação"). Pode devolver Promise de qualquer um desses.
+ *       "tela" é o que a Iris decidiu (ex: 'avaliacao', 'metas') -- o app decide o que suportar.
  *   };
  *
  * Não escreve dado nenhum no sistema -- só conversa e chama onNavigate.
@@ -228,7 +229,9 @@
       div.textContent = texto;
     }
     body.appendChild(div);
-    body.scrollTop = body.scrollHeight;
+    // Foca no COMEÇO da mensagem nova, não no fim -- resposta grande ia
+    // sempre direto pro fim dela, ficava difícil voltar pro início pra ler.
+    div.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
 
   function addTyping(body) {
@@ -237,7 +240,7 @@
     div.id = 'iris-typing-indicator';
     div.innerHTML = '<span></span><span></span><span></span>';
     body.appendChild(div);
-    body.scrollTop = body.scrollHeight;
+    div.scrollIntoView({ block: 'start', behavior: 'smooth' });
     return div;
   }
 
@@ -281,12 +284,17 @@
       historico.push({ role: 'iris', text: json.resposta });
 
       if (json.navegar_para) {
+        // Formato "tela:cod_item" (ex: "metas:22"); se vier sem tela (jeito
+        // antigo, só "22"), assume "avaliacao" pra não quebrar.
+        var partesNav = String(json.navegar_para).split(':');
+        var telaNav = partesNav.length > 1 ? partesNav[0] : 'avaliacao';
+        var codItemNav = partesNav.length > 1 ? partesNav.slice(1).join(':') : partesNav[0];
         // onNavigate pode ser assíncrono (às vezes precisa abrir a
         // avaliação certa antes de destacar o critério na tela). Pode
         // devolver true (achou), false (não achou, sem detalhe) ou uma
         // string (não achou, mas com o motivo específico pra pessoa
         // corrigir -- ex: "tentei a filial X no mês Y, mas não existe").
-        var resultadoNav = CFG.onNavigate ? await CFG.onNavigate(json.navegar_para) : false;
+        var resultadoNav = CFG.onNavigate ? await CFG.onNavigate(telaNav, codItemNav) : false;
         if (resultadoNav === false) {
           addMsg(body, 'iris', 'Não consegui destacar esse item na tela atual -- talvez precise abrir a avaliação certa primeiro.');
         } else if (typeof resultadoNav === 'string') {
