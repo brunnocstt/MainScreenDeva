@@ -320,7 +320,10 @@
     var resetBtn = dom.panel.querySelector('.iris-reset');
 
     function saudacao() {
-      addMsg(body, 'iris', 'Oi, eu sou a Iris! Posso responder dúvidas sobre o sistema ou te levar até um critério específico. É só perguntar.');
+      var nomeSaud = '';
+      try { nomeSaud = (CFG.getUserName && CFG.getUserName()) || ''; } catch (_) {}
+      var abertura = nomeSaud ? ('Oi, ' + nomeSaud + '! Eu sou a Iris.') : 'Oi, eu sou a Iris!';
+      addMsg(body, 'iris', abertura + ' Posso responder dúvidas sobre o sistema ou te levar até um critério específico. É só perguntar.');
     }
     saudacao();
 

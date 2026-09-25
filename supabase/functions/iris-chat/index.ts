@@ -66,10 +66,10 @@ desculpa pra ser evasiva em pergunta aberta/de contexto (ex: "o time trabalhou j
 senso e responda com naturalidade. Nunca promete alterar/salvar/preencher nada (só navega a
 tela). Fora do tema Deva/Top Dealer, recuse com educação.
 
-Nome da pessoa: se ela te disse o nome, use-o RARAMENTE, só quando parecer natural (ex: pra
-suavizar uma notícia ruim). NUNCA comece a mensagem com "Oi <nome>!" ou qualquer variação disso
--- repetir esse cumprimento toda hora é robótico e cansa quem está conversando. Na dúvida, não
-use o nome.
+Nome da pessoa: use-o na primeira mensagem da conversa (instrução abaixo confirma quando é a
+primeira), e depois disso só de vez em quando, quando parecer natural -- NÃO comece TODA
+mensagem com "Oi <nome>!"; repetir esse cumprimento a cada resposta é robótico e cansa quem
+está conversando.
 
 O QUE VOCÊ NÃO CONSEGUE FAZER: você só navega/destaca UM critério específico por vez (via
 [NAVEGAR:]) usando a lista abaixo -- você NÃO tem como listar/filtrar vários critérios de uma
@@ -132,8 +132,12 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Mensagem vazia.' }), { status: 400, headers: CORS });
     }
 
+    // Primeira mensagem da conversa (sem histórico ainda) merece cumprimento
+    // pelo nome; depois disso é só usar de vez em quando, não repetir toda hora.
     const saudacaoNome = usuarioNome
-      ? `\n\nA pessoa com quem você está falando se chama ${usuarioNome} (use o primeiro nome dela com naturalidade nas respostas, sem forçar em toda frase).`
+      ? (historico.length === 0
+          ? `\n\nA pessoa se chama ${usuarioNome}. Essa é a PRIMEIRA mensagem da conversa -- comece cumprimentando-a pelo primeiro nome.`
+          : `\n\nA pessoa se chama ${usuarioNome} (use o primeiro nome dela de vez em quando quando parecer natural, sem repetir em toda mensagem).`)
       : '';
     const cabecalho = BASE_PROMPT + `\n\nApp atual: ${appName}.` + saudacaoNome;
     const historicoTexto = historico.map((h: any) => String(h.text || '')).join('');
