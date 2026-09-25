@@ -1,11 +1,11 @@
 /*
- * Iris — assistente compartilhada dos apps Deva/IVECO (*.albusdata.com.br).
+ * Eva — assistente compartilhada dos apps Deva/IVECO (*.albusdata.com.br).
  * Um arquivo só, incluído por <script> em cada app. Cada app fornece um
- * pequeno "adaptador" via window.IRIS_CONFIG ANTES de incluir esse script,
+ * pequeno "adaptador" via window.EVA_CONFIG ANTES de incluir esse script,
  * porque cada app tem seus próprios nomes de variável global (S, sb, etc.)
- * -- a Iris não assume nada sobre eles, só chama os hooks:
+ * -- a Eva não assume nada sobre eles, só chama os hooks:
  *
- *   window.IRIS_CONFIG = {
+ *   window.EVA_CONFIG = {
  *     appName: 'topdealer',
  *     getAccessToken: async () => (await sb.auth.getSession()).data.session?.access_token,
  *     getUserName: () => 'Primeiro nome' (opcional -- pra ela chamar a pessoa pelo nome),
@@ -13,16 +13,20 @@
  *     onNavigate: (tela, codItem) => true (achou e destacou) | false (não achou, sem detalhe) |
  *       string (não achou, mas com o motivo pra pessoa corrigir -- ex: "tentei a filial X
  *       no mês Y, mas não existe avaliação"). Pode devolver Promise de qualquer um desses.
- *       "tela" é o que a Iris decidiu (ex: 'avaliacao', 'metas') -- o app decide o que suportar.
+ *       "tela" é o que a Eva decidiu (ex: 'avaliacao', 'metas') -- o app decide o que suportar.
  *   };
  *
  * Não escreve dado nenhum no sistema -- só conversa e chama onNavigate.
+ *
+ * Nomes internos (variáveis JS, classes CSS, nome da Edge Function "iris-chat")
+ * continuam com o prefixo "iris" de propósito -- é só o nome antigo do projeto
+ * por debaixo do capô, nunca aparece pra quem usa. Não precisa trocar.
  */
 (function () {
   'use strict';
 
   var IRIS_FN_URL = 'https://iueakatarwkvaoomhhah.supabase.co/functions/v1/iris-chat';
-  var CFG = window.IRIS_CONFIG || {};
+  var CFG = window.EVA_CONFIG || {};
   var historico = []; // [{role:'user'|'iris', text}]
   var aberto = false;
 
@@ -117,12 +121,12 @@
     var teaser = document.createElement('div');
     teaser.className = 'iris-teaser';
     teaser.id = 'iris-teaser';
-    teaser.textContent = 'Pergunte à Iris';
+    teaser.textContent = 'Pergunte à Eva';
 
     var bubble = document.createElement('button');
     bubble.className = 'iris-bubble';
     bubble.type = 'button';
-    bubble.setAttribute('aria-label', 'Abrir a Iris');
+    bubble.setAttribute('aria-label', 'Abrir a Eva');
     bubble.innerHTML = ICON_IRIS + '<span class="iris-online-dot"></span>';
 
     var panel = document.createElement('div');
@@ -130,13 +134,13 @@
     panel.innerHTML =
       '<div class="iris-head">' +
         '<div class="iris-head-avatar">' + ICON_IRIS.replace('width="17" height="17"', 'width="18" height="18"') + '<span class="iris-online-dot"></span></div>' +
-        '<div class="iris-head-text"><b>Iris</b><span>Assistente de IA</span></div>' +
+        '<div class="iris-head-text"><b>Eva</b><span>Assistente de IA</span></div>' +
         '<button type="button" class="iris-reset" aria-label="Reiniciar conversa" title="Reiniciar conversa">' + ICON_RESET + '</button>' +
         '<button type="button" class="iris-close" aria-label="Fechar">' + ICON_CLOSE + '</button>' +
       '</div>' +
       '<div class="iris-body" id="iris-body"></div>' +
       '<div class="iris-foot">' +
-        '<textarea class="iris-input" id="iris-input" placeholder="Pergunte à Iris…" rows="1"></textarea>' +
+        '<textarea class="iris-input" id="iris-input" placeholder="Pergunte à Eva…" rows="1"></textarea>' +
         '<button type="button" class="iris-send" id="iris-send">' + ICON_SEND + '</button>' +
       '</div>';
 
@@ -310,7 +314,7 @@
   }
 
   function init() {
-    CFG = window.IRIS_CONFIG || {};
+    CFG = window.EVA_CONFIG || {};
     injetarCss();
     var dom = montarDom();
     var body = dom.panel.querySelector('#iris-body');
@@ -322,7 +326,7 @@
     function saudacao() {
       var nomeSaud = '';
       try { nomeSaud = (CFG.getUserName && CFG.getUserName()) || ''; } catch (_) {}
-      var abertura = nomeSaud ? ('Oi, ' + nomeSaud + '! Eu sou a Iris.') : 'Oi, eu sou a Iris!';
+      var abertura = nomeSaud ? ('Oi, ' + nomeSaud + '! Eu sou a Eva.') : 'Oi, eu sou a Eva!';
       addMsg(body, 'iris', abertura + ' Posso responder dúvidas sobre o sistema ou te levar até um critério específico. É só perguntar.');
     }
     saudacao();
