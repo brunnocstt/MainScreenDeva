@@ -10,8 +10,9 @@
  *     getAccessToken: async () => (await sb.auth.getSession()).data.session?.access_token,
  *     getUserName: () => 'Primeiro nome' (opcional -- pra ela chamar a pessoa pelo nome),
  *     getCriteriosIndex: () => [{cod_item, nome, descricao?, meta?, valor_atual?}, ...],
- *     onNavigate: (codItem) => true/false ou Promise<boolean> -- true se encontrou e
- *       destacou (pode ser assíncrono, ex: abrir a avaliação certa antes de destacar).
+ *     onNavigate: (codItem) => true (achou e destacou) | false (não achou, sem detalhe) |
+ *       string (não achou, mas com o motivo pra pessoa corrigir -- ex: "tentei a filial X
+ *       no mês Y, mas não existe avaliação"). Pode devolver Promise de qualquer um desses.
  *   };
  *
  * Não escreve dado nenhum no sistema -- só conversa e chama onNavigate.
@@ -281,9 +282,16 @@
 
       if (json.navegar_para) {
         // onNavigate pode ser assíncrono (às vezes precisa abrir a
-        // avaliação certa antes de destacar o critério na tela).
-        var achou = CFG.onNavigate ? await CFG.onNavigate(json.navegar_para) : false;
-        if (!achou) addMsg(body, 'iris', 'Não consegui destacar esse item na tela atual -- talvez precise abrir a avaliação certa primeiro.');
+        // avaliação certa antes de destacar o critério na tela). Pode
+        // devolver true (achou), false (não achou, sem detalhe) ou uma
+        // string (não achou, mas com o motivo específico pra pessoa
+        // corrigir -- ex: "tentei a filial X no mês Y, mas não existe").
+        var resultadoNav = CFG.onNavigate ? await CFG.onNavigate(json.navegar_para) : false;
+        if (resultadoNav === false) {
+          addMsg(body, 'iris', 'Não consegui destacar esse item na tela atual -- talvez precise abrir a avaliação certa primeiro.');
+        } else if (typeof resultadoNav === 'string') {
+          addMsg(body, 'iris', resultadoNav);
+        }
       }
     } catch (e) {
       typingEl.remove();
