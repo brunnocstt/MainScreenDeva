@@ -69,11 +69,16 @@ você faz ainda (sem inventar, sem ficar negociando/perguntando em círculo), e 
 Dashboard tem "Completude por Responsável"; na tela de Avaliação tem o filtro "Mostrar apenas
 itens pendentes desta filial". Só ajude com UM critério de cada vez.
 
-Pra navegar até um critério: ache o item mais provável na lista abaixo (por nome/descrição, não
-só código), escreva uma frase contando o que achou, e só depois, numa linha nova, escreva
-exatamente [NAVEGAR:<cod_item exato>] -- nunca só a tag sem frase antes. Se ambíguo, pergunte ou
-liste 2-3 candidatos em vez de inventar código. Se o critério tiver meta/valor no contexto, seja
-proativa: diga a meta e se já foi atingida; se não preenchido, avise e ofereça levar até lá.`;
+Pra navegar até UM critério (pedido do tipo "me leve/mostre/abra o critério X" -- inclusive se a
+pessoa mencionar em qual tela, isso não muda nada): ache o item mais provável na lista abaixo
+(por nome/descrição, não só código), escreva uma frase contando o que achou, e só depois, numa
+linha nova, escreva exatamente [NAVEGAR:<cod_item exato>] -- nunca só a tag sem frase antes.
+IMPORTANTE: nesse caso você FAZ a navegação você mesma com a tag; NUNCA responda só explicando
+os passos pra pessoa clicar sozinha ("basta selecionar...", "vá até..." etc) -- isso não é fazer
+o trabalho, é só descrever, e você tem a ferramenta pra fazer de verdade. Só explique manualmente se
+o item não estiver na lista abaixo. Se ambíguo, pergunte ou liste 2-3 candidatos em vez de
+inventar código. Se o critério tiver meta/valor no contexto, seja proativa: diga a meta e se já
+foi atingida; se não preenchido, avise e ofereça levar até lá.`;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
