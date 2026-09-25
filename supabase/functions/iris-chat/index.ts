@@ -117,14 +117,23 @@ Pra navegar até UM critério (pedido do tipo "me leve/mostre/abra o critério X
 duas telas faz mais sentido (se a pessoa não disser, use "avaliacao" por padrão -- é a mais
 comum), ache o item mais provável na lista abaixo (por nome/descrição, não só código), escreva
 uma frase contando o que achou, e só depois, numa linha nova, escreva exatamente
-[NAVEGAR:<tela>:<cod_item exato>] -- ex: [NAVEGAR:metas:22] ou [NAVEGAR:avaliacao:22]. Nunca só
-a tag sem frase antes. IMPORTANTE: nesse caso você FAZ a navegação você mesma com a tag; NUNCA
-responda só explicando os passos pra pessoa clicar sozinha ("basta selecionar...", "vá até..."
-etc) -- isso não é fazer o trabalho, é só descrever, e você tem a ferramenta pra fazer de
-verdade. Só explique manualmente se o item não estiver na lista abaixo, ou se for uma tela sem
-suporte. Se ambíguo, pergunte ou liste 2-3 candidatos em vez de inventar código. Se o critério
-tiver meta/valor no contexto, seja proativa: diga a meta e se já
-foi atingida; se não preenchido, avise e ofereça levar até lá.`;
+[NAVEGAR:<tela>:<cod_item exato>] -- ex: [NAVEGAR:avaliacao:22]. Nunca só a tag sem frase antes.
+
+Tela "metas" precisa de uma FILIAL selecionada pra funcionar. Se você (ou uma resposta anterior
+sua nesta conversa) não sabe qual filial usar, pergunte antes de navegar -- não chute. Quando a
+pessoa disser a filial (agora ou numa resposta a essa pergunta, olhe o histórico), inclua o nome
+EXATO dela (da lista de filiais abaixo) como terceiro campo da tag:
+[NAVEGAR:metas:<cod_item>:<nome exato da filial>] -- ex: [NAVEGAR:metas:22:Betim]. Sem esse
+terceiro campo, a navegação pra "metas" só funciona se a pessoa já tiver usado essa tela antes
+(ela lembra a última filial usada); com ele, você seleciona a filial certa e carrega direto.
+
+IMPORTANTE: você FAZ a navegação você mesma com a tag; NUNCA responda só explicando os passos
+pra pessoa clicar sozinha ("basta selecionar...", "vá até..." etc) -- isso não é fazer o
+trabalho, é só descrever, e você tem a ferramenta pra fazer de verdade. Só explique manualmente
+se o item não estiver na lista abaixo, ou se for uma tela sem suporte. Se ambíguo (critério ou
+filial), pergunte ou liste candidatos em vez de inventar código/nome. Se o critério tiver
+meta/valor no contexto, seja proativa: diga a meta e se já foi atingida; se não preenchido,
+avise e ofereça levar até lá.`;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -154,6 +163,7 @@ Deno.serve(async (req) => {
     // decide sozinho se manda descrição/meta (caro) ou só cod_item+nome
     // (barato, cabe muito mais item) de acordo com o tamanho total.
     const criteriosIndex = Array.isArray(body.criteriosIndex) ? body.criteriosIndex.slice(0, 300) : [];
+    const filiaisIndex = Array.isArray(body.filiaisIndex) ? body.filiaisIndex.slice(0, 30) : [];
     const appName = String(body.appName || 'sistema').slice(0, 60);
     const usuarioNome = String(body.usuarioNome || '').trim().slice(0, 80);
 
@@ -168,7 +178,11 @@ Deno.serve(async (req) => {
           ? `\n\nA pessoa se chama ${usuarioNome}. Essa é a PRIMEIRA mensagem da conversa -- comece cumprimentando-a pelo primeiro nome.`
           : `\n\nA pessoa se chama ${usuarioNome} (use o primeiro nome dela de vez em quando quando parecer natural, sem repetir em toda mensagem).`)
       : '';
-    const cabecalho = BASE_PROMPT + `\n\nApp atual: ${appName}.` + saudacaoNome;
+    const listaFiliais = filiaisIndex.length
+      ? `\n\nFiliais existentes (use o nome exato na tag [NAVEGAR:metas:...:filial] se precisar): ` +
+        filiaisIndex.map((f: any) => f.nome).join(', ') + '.'
+      : '';
+    const cabecalho = BASE_PROMPT + `\n\nApp atual: ${appName}.` + saudacaoNome + listaFiliais;
     const historicoTexto = historico.map((h: any) => String(h.text || '')).join('');
 
     // Tier gratuito do Groq: 8000 tokens/minuto, medido em cima do PROMPT

@@ -10,10 +10,14 @@
  *     getAccessToken: async () => (await sb.auth.getSession()).data.session?.access_token,
  *     getUserName: () => 'Primeiro nome' (opcional -- pra ela chamar a pessoa pelo nome),
  *     getCriteriosIndex: () => [{cod_item, nome, descricao?, meta?, valor_atual?}, ...],
- *     onNavigate: (tela, codItem) => true (achou e destacou) | false (não achou, sem detalhe) |
- *       string (não achou, mas com o motivo pra pessoa corrigir -- ex: "tentei a filial X
- *       no mês Y, mas não existe avaliação"). Pode devolver Promise de qualquer um desses.
- *       "tela" é o que a Eva decidiu (ex: 'avaliacao', 'metas') -- o app decide o que suportar.
+ *     getFiliaisIndex: () => [{id, nome}, ...] (opcional -- pra ela saber os nomes exatos
+ *       de filial que pode devolver na tag de navegação, ex: telas que dependem de filial),
+ *     onNavigate: (tela, codItem, filialNome) => true (achou e destacou) | false (não achou,
+ *       sem detalhe) | string (não achou, mas com o motivo pra pessoa corrigir -- ex: "tentei
+ *       a filial X no mês Y, mas não existe avaliação"). Pode devolver Promise de qualquer um
+ *       desses. "tela" é o que a Eva decidiu (ex: 'avaliacao', 'metas') -- o app decide o que
+ *       suportar. "filialNome" é opcional (null se a Eva não citou uma filial) -- nome exato
+ *       de getFiliaisIndex, pro app selecionar a filial certa antes de procurar o critério.
  *   };
  *
  * Não escreve dado nenhum no sistema -- só conversa e chama onNavigate.
@@ -267,6 +271,8 @@
       try { criteriosIndex = (CFG.getCriteriosIndex && CFG.getCriteriosIndex()) || []; } catch (_) {}
       var usuarioNome = '';
       try { usuarioNome = (CFG.getUserName && CFG.getUserName()) || ''; } catch (_) {}
+      var filiaisIndex = [];
+      try { filiaisIndex = (CFG.getFiliaisIndex && CFG.getFiliaisIndex()) || []; } catch (_) {}
 
       var res = await fetch(IRIS_FN_URL, {
         method: 'POST',
@@ -275,6 +281,7 @@
           mensagem: texto,
           historico: historicoParaEnviar,
           criteriosIndex: criteriosIndex,
+          filiaisIndex: filiaisIndex,
           appName: CFG.appName || 'sistema',
           usuarioNome: usuarioNome,
         }),
@@ -289,16 +296,18 @@
 
       if (json.navegar_para) {
         // Formato "tela:cod_item" (ex: "metas:22"); se vier sem tela (jeito
-        // antigo, só "22"), assume "avaliacao" pra não quebrar.
+        // antigo, só "22"), assume "avaliacao" pra não quebrar. Terceiro
+        // campo opcional é o nome exato da filial (ex: "metas:22:Betim").
         var partesNav = String(json.navegar_para).split(':');
         var telaNav = partesNav.length > 1 ? partesNav[0] : 'avaliacao';
-        var codItemNav = partesNav.length > 1 ? partesNav.slice(1).join(':') : partesNav[0];
+        var codItemNav = partesNav.length > 1 ? partesNav[1] : partesNav[0];
+        var filialNav = partesNav.length > 2 ? partesNav.slice(2).join(':') : null;
         // onNavigate pode ser assíncrono (às vezes precisa abrir a
         // avaliação certa antes de destacar o critério na tela). Pode
         // devolver true (achou), false (não achou, sem detalhe) ou uma
         // string (não achou, mas com o motivo específico pra pessoa
         // corrigir -- ex: "tentei a filial X no mês Y, mas não existe").
-        var resultadoNav = CFG.onNavigate ? await CFG.onNavigate(telaNav, codItemNav) : false;
+        var resultadoNav = CFG.onNavigate ? await CFG.onNavigate(telaNav, codItemNav, filialNav) : false;
         if (resultadoNav === false) {
           addMsg(body, 'iris', 'Não consegui destacar esse item na tela atual -- talvez precise abrir a avaliação certa primeiro.');
         } else if (typeof resultadoNav === 'string') {
