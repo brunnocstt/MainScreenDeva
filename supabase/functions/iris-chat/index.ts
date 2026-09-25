@@ -82,6 +82,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
   try {
+    console.log('[iris-chat] invocação -- modelo:', GEMINI_MODELO,
+      '| GEMINI_API_KEY definida:', !!GEMINI_API_KEY, '| tamanho:', GEMINI_API_KEY?.length || 0);
+
     const authHeader = req.headers.get('Authorization') || '';
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
@@ -122,6 +125,7 @@ Deno.serve(async (req) => {
     let geminiJson: any = null;
     let ultimoErro = '';
     for (let i = 0; i < RETRY_TENTATIVAS; i++) {
+      console.log('[iris-chat] tentativa', i + 1, 'de', RETRY_TENTATIVAS, '-- chamando', GEMINI_MODELO);
       const tentativa = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODELO}:generateContent?key=${GEMINI_API_KEY}`,
         {
@@ -131,15 +135,18 @@ Deno.serve(async (req) => {
         }
       );
       const json = await tentativa.json();
+      console.log('[iris-chat] resposta HTTP', tentativa.status, tentativa.ok ? '(ok)' : JSON.stringify(json?.error || json));
       if (tentativa.ok) { geminiJson = json; break; }
       ultimoErro = json?.error?.message || ('HTTP ' + tentativa.status);
       const ehTransitorio = /demand|overloaded|unavailable|503/i.test(ultimoErro);
-      if (!ehTransitorio) break; // erro definitivo (chave errada, etc.) -- não insiste
+      if (!ehTransitorio) { console.log('[iris-chat] erro não-transitório, parando retry'); break; }
       if (i < RETRY_TENTATIVAS - 1) await new Promise(r => setTimeout(r, RETRY_ESPERA_MS));
     }
     if (!geminiJson) {
+      console.log('[iris-chat] desistiu depois de', RETRY_TENTATIVAS, 'tentativas. Último erro:', ultimoErro);
       return new Response(JSON.stringify({ error: 'Erro na IA: ' + ultimoErro }), { status: 502, headers: CORS });
     }
+    console.log('[iris-chat] sucesso');
 
     let texto: string = geminiJson?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') || '';
     let navegarPara: string | null = null;
