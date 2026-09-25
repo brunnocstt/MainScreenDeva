@@ -8,9 +8,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.10';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!;
-// Tenta nessa ordem -- o mais novo primeiro, caindo pra modelos mais
-// antigos/estáveis se o de cima estiver com fila (erro de alta demanda).
-const GEMINI_MODELOS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-2.5-flash'];
+// Chave nova só tem acesso ao modelo mais recente -- modelos antigos
+// (2.5, 2.0...) dão erro de "não disponível pra novos usuários", não é
+// questão de fila. Então não tem fallback de modelo: só retry no mesmo.
+const GEMINI_MODELO = 'gemini-3.8-flash';
+const RETRY_TENTATIVAS = 3;
+const RETRY_ESPERA_MS = 1500;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -77,14 +80,14 @@ Deno.serve(async (req) => {
       { role: 'user', parts: [{ text: mensagem }] },
     ];
 
-    // Modelo novo às vezes fica com fila (erro de "alta demanda") -- tenta
-    // o principal e, se não der, cai pra um modelo mais antigo/estável em
-    // vez de devolver erro pra pessoa direto.
+    // Erro de "alta demanda" costuma durar só alguns segundos -- tenta de
+    // novo o mesmo modelo antes de desistir, em vez de devolver erro na
+    // primeira falha.
     let geminiJson: any = null;
     let ultimoErro = '';
-    for (const modelo of GEMINI_MODELOS) {
+    for (let i = 0; i < RETRY_TENTATIVAS; i++) {
       const tentativa = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODELO}:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -94,6 +97,9 @@ Deno.serve(async (req) => {
       const json = await tentativa.json();
       if (tentativa.ok) { geminiJson = json; break; }
       ultimoErro = json?.error?.message || ('HTTP ' + tentativa.status);
+      const ehTransitorio = /demand|overloaded|unavailable|503/i.test(ultimoErro);
+      if (!ehTransitorio) break; // erro definitivo (chave errada, etc.) -- não insiste
+      if (i < RETRY_TENTATIVAS - 1) await new Promise(r => setTimeout(r, RETRY_ESPERA_MS));
     }
     if (!geminiJson) {
       return new Response(JSON.stringify({ error: 'Erro na IA: ' + ultimoErro }), { status: 502, headers: CORS });
