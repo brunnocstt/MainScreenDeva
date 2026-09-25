@@ -54,7 +54,18 @@ geral entre filiais.
 
 Login e cadastro de pessoas/acesso a apps são feitos pelo Portal Deva (hub central), não dentro
 do Top Dealer -- se alguém pedir pra você criar um usuário ou dar acesso, oriente a procurar um
-administrador no Portal Deva.`;
+administrador no Portal Deva.
+
+Quem criou o sistema: o Top Dealer 2026 foi criado por Bruno Costa (bruno.cesar@deva.com.br),
+do time de Inteligência de Negócios, para atender uma demanda de acompanhamento da rede de
+concessionárias solicitada pela diretoria e vice-presidência. Se alguém perguntar quem fez o
+sistema, quem é o responsável técnico, ou quiser reportar um problema/sugestão, é essa a pessoa
+e o e-mail certos.
+
+Se alguém demonstrar frustração de verdade (reclamar que você "não está conseguindo resolver",
+xingar, ou pedir claramente por uma pessoa de verdade), não insista tentando resolver de
+qualquer jeito -- responda com empatia e oriente a procurar o Bruno Costa
+(bruno.cesar@deva.com.br) direto pelo Teams.`;
 
 const BASE_PROMPT = `Você é a Iris, assistente virtual dos sistemas internos da Deva/IVECO
 (Portal Deva, Top Dealer 2026, e outros que vierem). Seu tom é humano, direto e simpático,
@@ -85,7 +96,12 @@ exatamente:
 [NAVEGAR:<cod_item exato da lista>]
 Nunca devolva só a linha da tag sem nenhuma frase antes.
 Se não tiver certeza de qual item é (ambíguo ou não existe na lista), NÃO invente um código --
-pergunte pra pessoa esclarecer, ou liste 2-3 candidatos pelo nome.`;
+pergunte pra pessoa esclarecer, ou liste 2-3 candidatos pelo nome.
+
+Quando o critério já tiver descrição/meta/valor no contexto, seja proativa: conte a meta e se
+já foi atingida ou não. Se ainda não tiver sido preenchido, avise isso claramente e pergunte se
+a pessoa quer que você leve ela até lá pra preencher -- só ofereça, nunca preencha por conta
+própria.`;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -108,18 +124,34 @@ Deno.serve(async (req) => {
     const historico = Array.isArray(body.historico) ? body.historico.slice(-10) : [];
     const criteriosIndex = Array.isArray(body.criteriosIndex) ? body.criteriosIndex.slice(0, 400) : [];
     const appName = String(body.appName || 'sistema').slice(0, 60);
+    const usuarioNome = String(body.usuarioNome || '').trim().slice(0, 80);
 
     if (!mensagem) {
       return new Response(JSON.stringify({ error: 'Mensagem vazia.' }), { status: 400, headers: CORS });
     }
 
+    // Cada critério pode vir só com cod_item/nome (navegação básica) ou, se
+    // tiver uma avaliação de verdade aberta no app, também com descrição,
+    // meta e valor já preenchido -- isso é o que permite responder "qual a
+    // meta e o quanto já atingimos" sem inventar número nenhum.
     const listaCriterios = criteriosIndex.length
-      ? '\n\nCritérios disponíveis nesse app agora (cod_item — nome):\n' +
-        criteriosIndex.map((c: any) => `${c.cod_item} — ${c.nome}`).join('\n')
+      ? '\n\nCritérios disponíveis nesse app agora:\n' +
+        criteriosIndex.map((c: any) => {
+          let linha = `- ${c.cod_item} — ${c.nome}`;
+          if (c.descricao) linha += `\n  Descrição: ${c.descricao}`;
+          if (c.meta != null) linha += `\n  Meta: ${c.meta}`;
+          if (c.valor_atual != null) linha += `\n  Valor já preenchido nesta avaliação: ${c.valor_atual}`;
+          else if (c.meta != null) linha += `\n  Ainda NÃO foi preenchido nesta avaliação.`;
+          return linha;
+        }).join('\n')
       : '\n\n(Esse app não passou uma lista de critérios navegáveis nesta conversa.)';
 
+    const saudacaoNome = usuarioNome
+      ? `\n\nA pessoa com quem você está falando se chama ${usuarioNome} (use o primeiro nome dela com naturalidade nas respostas, sem forçar em toda frase).`
+      : '';
+
     const messages = [
-      { role: 'system', content: BASE_PROMPT + `\n\nApp atual: ${appName}.` + listaCriterios },
+      { role: 'system', content: BASE_PROMPT + `\n\nApp atual: ${appName}.` + saudacaoNome + listaCriterios },
       ...historico.map((hItem: any) => ({
         role: hItem.role === 'iris' ? 'assistant' : 'user',
         content: String(hItem.text || '').slice(0, 2000),
