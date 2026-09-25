@@ -8,8 +8,10 @@
  *   window.IRIS_CONFIG = {
  *     appName: 'topdealer',
  *     getAccessToken: async () => (await sb.auth.getSession()).data.session?.access_token,
- *     getCriteriosIndex: () => [{cod_item, nome}, ...] ou [] se não fizer sentido nesse app,
- *     onNavigate: (codItem) => true/false  -- true se encontrou e destacou, false se não.
+ *     getUserName: () => 'Primeiro nome' (opcional -- pra ela chamar a pessoa pelo nome),
+ *     getCriteriosIndex: () => [{cod_item, nome, descricao?, meta?, valor_atual?}, ...],
+ *     onNavigate: (codItem) => true/false ou Promise<boolean> -- true se encontrou e
+ *       destacou (pode ser assíncrono, ex: abrir a avaliação certa antes de destacar).
  *   };
  *
  * Não escreve dado nenhum no sistema -- só conversa e chama onNavigate.
@@ -156,6 +158,8 @@
 
       var criteriosIndex = [];
       try { criteriosIndex = (CFG.getCriteriosIndex && CFG.getCriteriosIndex()) || []; } catch (_) {}
+      var usuarioNome = '';
+      try { usuarioNome = (CFG.getUserName && CFG.getUserName()) || ''; } catch (_) {}
 
       var res = await fetch(IRIS_FN_URL, {
         method: 'POST',
@@ -165,6 +169,7 @@
           historico: historicoParaEnviar,
           criteriosIndex: criteriosIndex,
           appName: CFG.appName || 'sistema',
+          usuarioNome: usuarioNome,
         }),
       });
       var json = await res.json();
@@ -176,7 +181,9 @@
       historico.push({ role: 'iris', text: json.resposta });
 
       if (json.navegar_para) {
-        var achou = CFG.onNavigate ? CFG.onNavigate(json.navegar_para) : false;
+        // onNavigate pode ser assíncrono (às vezes precisa abrir a
+        // avaliação certa antes de destacar o critério na tela).
+        var achou = CFG.onNavigate ? await CFG.onNavigate(json.navegar_para) : false;
         if (!achou) addMsg(body, 'iris', 'Não consegui destacar esse item na tela atual -- talvez precise abrir a avaliação certa primeiro.');
       }
     } catch (e) {
