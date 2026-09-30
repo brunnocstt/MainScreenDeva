@@ -230,6 +230,9 @@
   .org-node-compacta .nome{ font-size:.66rem; }
   .org-node-compacta .cargo{ font-size:.58rem; }
   .org-node-compacta.org-node-clicavel:hover{ background:var(--accent-soft); transform:none; box-shadow:none; border-color:transparent; }
+  .org-node-fora-filtro{ opacity:.32; }
+  .org-node-filial-match{ border-color:var(--good); box-shadow:0 0 0 2px var(--good-soft); }
+  .org-node-filial-match .org-node-badge{ border-color:var(--good); color:var(--good); }
   .table-wrap{ overflow-x:auto; }
   /* width:100% + table-layout AUTO (padrão do navegador) -- igual, literal,
      ao <table style={{width:"100%",borderCollapse:"collapse"}}> da
@@ -596,7 +599,7 @@
       <div id="org-pendencias" hidden style="margin-bottom:20px;"></div>
       <div class="gestao-toolbar">
         <div class="gestao-filter"><span>Filial</span><select id="org-filtro-filial"><option value="">Todas</option></select></div>
-        <div class="gestao-filter"><span>Área</span><select id="org-filtro-area"><option value="">Todas</option></select></div>
+        <div class="gestao-filter"><span>Área</span><select id="org-filtro-area"><option value="">Ir para...</option></select></div>
       </div>
       <div id="org-tree" class="org-tree"></div>
     </div>
@@ -1606,8 +1609,7 @@
   }
 
   var orgFocoId = null; // id de quem está "em foco" na visão principal -- null = raiz
-  var orgFiltroFilial = ''; // filial_id selecionado, '' = todas
-  var orgFiltroAreaGestorId = ''; // id do gestor da área selecionada, '' = todas -- convive com o filtro de filial
+  var orgFiltroFilial = ''; // filial_id selecionado, '' = todas -- só esmaece/destaca cards, nunca corta a árvore
 
   // Áreas não são uma coluna no banco -- é só um atalho pra pular direto pro
   // ramo daquele gestor na árvore (o "responsável" de cada área, combinado
@@ -1634,8 +1636,8 @@
 
   // A empresa NÃO é organizada por filial (só a oficina tem gestor local de
   // verdade -- vendas, administrativo etc. respondem a gente de outra
-  // filial) -- por isso o filtro de filial não pode cortar a árvore igual o
-  // de área faz. Ele vira uma lista à parte (ver renderOrgListaFilial).
+  // filial) -- por isso o filtro de filial nunca corta a árvore, só esmaece
+  // ou destaca cards dentro do drill-down normal (ver cardHtml).
   function construirPorGestor(){
     var lista = orgDados.pessoas || [];
     var idsVisiveis = {};
@@ -1734,69 +1736,7 @@
     });
   }
 
-  // Filtro de filial: mesma visualização de cards+linhas de sempre, só que
-  // agrupada pelo gestor REAL de cada um (que pode estar em outra filial --
-  // é assim mesmo na empresa fora da oficina). O card do gestor aparece
-  // compacto (cinza) pra deixar claro que ele é só contexto, não é
-  // necessariamente dessa filial.
-  function pessoaEstaSobGestor(pessoa, gestorId){
-    if (!gestorId) return true;
-    var atual = pessoa;
-    while (atual) {
-      if (atual.id === gestorId) return true;
-      atual = atual.gestor_imediato_id ? pessoaOrg(atual.gestor_imediato_id) : null;
-    }
-    return false;
-  }
-
-  function renderOrgListaFilial(){
-    var pessoas = (orgDados.pessoas || []).filter(function(p){
-      return p.ativo && p.filial_id === orgFiltroFilial && pessoaEstaSobGestor(p, orgFiltroAreaGestorId);
-    });
-    var tree = document.getElementById('org-tree');
-    if (!pessoas.length) { tree.innerHTML = '<p class="modal-note">Ninguém ativo nessa filial (com esse filtro de área).</p>'; return; }
-
-    function podeMover(pessoa){
-      return orgDados.caller.edicao_direta || pessoa.gestor_imediato_id === orgDados.caller.pessoa_id;
-    }
-    function cardHtmlSimples(pessoa, opts){
-      opts = opts || {};
-      return '<div class="org-node-card' + (opts.compacta ? ' org-node-compacta' : '') + '">' +
-        (podeMover(pessoa) ? '<button type="button" class="org-node-mover" title="Mover pra outro gestor" data-mover-pessoa="' + pessoa.id + '"><svg width="12" height="12"><use href="#i-pencil"/></svg></button>' : '') +
-        '<span class="avatar" style="background:' + corAvatar(pessoa.nome) + '">' + iniciais(pessoa.nome) + '</span>' +
-        '<div class="org-node-info"><div class="nome">' + escapeHtml(pessoa.nome) + '</div>' +
-          '<div class="cargo">' + escapeHtml(capitalizarCargo(pessoa.cargo)) + '</div></div>' +
-      '</div>';
-    }
-
-    var porGestor = {};
-    pessoas.forEach(function(p){
-      var chave = p.gestor_imediato_id || ('__solo__' + p.id);
-      (porGestor[chave] = porGestor[chave] || []).push(p);
-    });
-    Object.keys(porGestor).forEach(function(k){ porGestor[k].sort(function(a,b){ return (a.nome||'').localeCompare(b.nome||'','pt-BR'); }); });
-
-    var grupos = Object.keys(porGestor).map(function(chave){
-      var filhos = porGestor[chave];
-      var gestor = chave.indexOf('__solo__') === 0 ? null : pessoaOrg(chave);
-      var html = gestor
-        ? '<ul class="org-chart"><li>' + cardHtmlSimples(gestor, { compacta: true }) +
-            '<ul>' + filhos.map(function(f){ return '<li>' + cardHtmlSimples(f) + '</li>'; }).join('') + '</ul>' +
-          '</li></ul>'
-        : '<ul class="org-chart"><li>' + cardHtmlSimples(filhos[0]) + '</li></ul>';
-      return { count: filhos.length, html: html };
-    });
-    grupos.sort(function(a, b){ return b.count - a.count; });
-
-    tree.innerHTML = '<div class="org-tree-soltos" style="flex-wrap:wrap;">' + grupos.map(function(g){ return g.html; }).join('') + '</div>';
-
-    Array.prototype.forEach.call(tree.querySelectorAll('[data-mover-pessoa]'), function(btn){
-      btn.addEventListener('click', function(e){ e.stopPropagation(); abrirMoverModal(btn.getAttribute('data-mover-pessoa')); });
-    });
-  }
-
   function renderOrgTree(){
-    if (orgFiltroFilial) { renderOrgListaFilial(); return; }
     // "Raiz" pra desenhar a árvore é quem não tem chefe, OU cujo chefe não
     // veio na lista (visão recortada pra admin_area/usuário -- o chefe dela
     // aparece como topo da fatia visível, mesmo tendo gestor próprio lá em
@@ -1810,27 +1750,50 @@
       return total;
     }
 
+    // Quantos descendentes desse ramo são da filial filtrada -- pra guiar o
+    // drill-down ("clica aqui que tem 5 gente de Betim pra esse lado").
+    function contarDescendentesFilial(pessoa){
+      var filhos = porGestor[pessoa.id] || [];
+      var total = 0;
+      filhos.forEach(function(f){
+        if (f.filial_id === orgFiltroFilial) total += 1;
+        total += contarDescendentesFilial(f);
+      });
+      return total;
+    }
+
     function podeMover(pessoa){
       return orgDados.caller.edicao_direta || pessoa.gestor_imediato_id === orgDados.caller.pessoa_id;
     }
 
     // Card de uma pessoa. `compacta` = card pequeno da trilha de ancestrais;
     // `clicavel` = tem filhos e pode ser focado (o card inteiro é o alvo do
-    // clique, não só um botão); `atual` = é quem está em foco agora.
+    // clique, não só um botão); `atual` = é quem está em foco agora. Com
+    // filtro de filial ativo, quem não é dela fica esmaecido e quem é ganha
+    // um contorno -- a árvore continua sendo só um ramo por vez, igual
+    // sempre foi, só com uma pista visual de pra onde clicar.
     function cardHtml(pessoa, opts){
       opts = opts || {};
       var filhos = porGestor[pessoa.id] || [];
       var temFilhos = filhos.length > 0;
+      var aplicaFiltroFilial = !!orgFiltroFilial && !opts.atual && !opts.compacta;
       var classes = 'org-node-card' +
         (opts.compacta ? ' org-node-compacta' : '') +
         (opts.atual ? ' org-node-atual' : '') +
-        (temFilhos && opts.clicavel ? ' org-node-clicavel' : '');
+        (temFilhos && opts.clicavel ? ' org-node-clicavel' : '') +
+        (aplicaFiltroFilial && pessoa.filial_id === orgFiltroFilial ? ' org-node-filial-match' : '') +
+        (aplicaFiltroFilial && pessoa.filial_id !== orgFiltroFilial ? ' org-node-fora-filtro' : '');
+      var badge = '';
+      if (temFilhos && !opts.compacta) {
+        var count = orgFiltroFilial ? contarDescendentesFilial(pessoa) : contarDescendentes(pessoa);
+        badge = '<span class="org-node-badge">' + count + '</span>';
+      }
       return '<div class="' + classes + '"' + (temFilhos && opts.clicavel ? ' data-foco-pessoa="' + pessoa.id + '"' : '') + '>' +
         (podeMover(pessoa) ? '<button type="button" class="org-node-mover" title="Mover pra outro gestor" data-mover-pessoa="' + pessoa.id + '"><svg width="12" height="12"><use href="#i-pencil"/></svg></button>' : '') +
         '<span class="avatar" style="background:' + corAvatar(pessoa.nome) + '">' + iniciais(pessoa.nome) + '</span>' +
         '<div class="org-node-info"><div class="nome">' + escapeHtml(pessoa.nome) + '</div>' +
           '<div class="cargo">' + escapeHtml(capitalizarCargo(pessoa.cargo)) + '</div></div>' +
-        (temFilhos && !opts.compacta ? '<span class="org-node-badge">' + contarDescendentes(pessoa) + '</span>' : '') +
+        badge +
       '</div>';
     }
 
@@ -1969,17 +1932,17 @@
   navConfig.addEventListener('click', function(){ selectView('config'); });
   navOrganograma.addEventListener('click', function(){ selectView('organograma'); });
   document.getElementById('org-filtro-filial').addEventListener('change', function(e){
+    // só re-renderiza no lugar (esmaece/destaca) -- não mexe no foco nem
+    // no filtro de área, pra não perder onde a pessoa estava navegando.
     orgFiltroFilial = e.target.value;
-    orgFocoId = null;
     renderOrgTree();
   });
   document.getElementById('org-filtro-area').addEventListener('change', function(e){
-    orgFiltroAreaGestorId = e.target.value;
-    // sem filtro de filial ativo: área continua pulando o foco na árvore
-    // direto. Com filial ativa, área só filtra dentro da lista da filial
-    // (os dois filtros convivem, nenhum reseta o outro).
-    if (!orgFiltroFilial && e.target.value) orgFocoId = e.target.value;
+    // pula o foco na árvore de sempre -- não mexe no filtro de filial.
+    if (!e.target.value) return;
+    orgFocoId = e.target.value;
     renderOrgTree();
+    e.target.value = '';
   });
   selectView('hub');
 
