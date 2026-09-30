@@ -579,7 +579,31 @@
 </div>
 
 <div class="user-popup" id="user-popup" hidden>
+  <button type="button" id="popup-meu-perfil"><svg width="14" height="14"><use href="#i-user-check"/></svg> Meu perfil</button>
   <button class="danger" id="popup-logout"><svg width="14" height="14"><use href="#i-logout"/></svg> Sair</button>
+</div>
+
+<!-- modal: meu perfil -- nome/e-mail travados (vêm do RH), só a foto é editável -->
+<div class="modal-overlay" id="perfil-modal" hidden>
+  <div class="modal-card">
+   <div class="modal-card-scroll">
+    <div class="modal-head"><h2>Meu perfil</h2><button type="button" class="modal-close" id="perfil-modal-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:22px;">
+      <span class="avatar" id="perfil-avatar-preview" style="width:76px;height:76px;font-size:1.6rem;position:relative;"></span>
+      <input type="file" id="perfil-foto-input" accept="image/png,image/jpeg,image/webp" hidden>
+      <button type="button" class="btn btn-ghost" id="perfil-trocar-foto" style="padding:8px 16px;">Trocar foto</button>
+    </div>
+    <div class="field" style="margin-bottom:14px;">
+      <label style="display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:6px;">Nome completo</label>
+      <input type="text" id="perfil-nome" disabled style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font-size:.9rem;">
+    </div>
+    <div class="field" style="margin-bottom:6px;">
+      <label style="display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:6px;">E-mail</label>
+      <input type="text" id="perfil-email" disabled style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font-size:.9rem;">
+    </div>
+    <p class="modal-note" style="margin-top:4px;">Nome e e-mail vêm do cadastro da empresa -- fale com o RH pra corrigir algum dado. Só a foto é sua pra mudar.</p>
+   </div>
+  </div>
 </div>
 
 <div class="filial-tooltip" id="filial-tooltip" hidden></div>
@@ -752,6 +776,19 @@
     var b = partes.length > 1 ? partes[partes.length - 1][0] : '';
     return (a + b).toUpperCase();
   }
+  // Mesmo elemento .avatar serve pra foto de verdade ou iniciais+cor -- só
+  // troca o conteúdo/estilo conforme tiver avatarUrl ou não.
+  function aplicarAvatar(el, nome, avatarUrl){
+    if (!el) return;
+    if (avatarUrl) {
+      el.textContent = '';
+      el.style.background = 'url(' + avatarUrl + ') center/cover no-repeat';
+    } else {
+      el.style.backgroundImage = 'none';
+      el.textContent = iniciais(nome);
+      el.style.background = corAvatar(nome);
+    }
+  }
   function toast(msg){
     var el = document.createElement('div');
     el.className = 'toast';
@@ -803,6 +840,45 @@
 
   document.getElementById('popup-logout').addEventListener('click', function(){
     sb.auth.signOut();
+  });
+
+  // ---------------- MODAL: MEU PERFIL ----------------
+  var perfilModal = document.getElementById('perfil-modal');
+  document.getElementById('popup-meu-perfil').addEventListener('click', function(){
+    closePopup();
+    document.getElementById('perfil-nome').value = estadoUsuario.nome || '';
+    document.getElementById('perfil-email').value = estadoUsuario.email || '';
+    aplicarAvatar(document.getElementById('perfil-avatar-preview'), estadoUsuario.nome, estadoUsuario.avatarUrl);
+    perfilModal.hidden = false;
+  });
+  function fecharPerfilModal(){ perfilModal.hidden = true; }
+  document.getElementById('perfil-modal-close').addEventListener('click', fecharPerfilModal);
+  perfilModal.addEventListener('click', function(e){ if (e.target === perfilModal) fecharPerfilModal(); });
+
+  document.getElementById('perfil-trocar-foto').addEventListener('click', function(){
+    document.getElementById('perfil-foto-input').click();
+  });
+  document.getElementById('perfil-foto-input').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    e.target.value = ''; // permite escolher o mesmo arquivo de novo depois
+    if (!file) return;
+    var btn = document.getElementById('perfil-trocar-foto');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    var ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    var caminho = estadoUsuario.uid + '/' + Date.now() + '.' + ext;
+    sb.storage.from('avatars').upload(caminho, file, { upsert: true, contentType: file.type }).then(function(res){
+      if (res.error) { btn.disabled = false; btn.textContent = 'Trocar foto'; toast('Erro ao enviar foto: ' + res.error.message); return; }
+      var pub = sb.storage.from('avatars').getPublicUrl(caminho);
+      var url = pub.data.publicUrl;
+      chamarOrganograma({ action: 'salvar_meu_avatar', avatar_url: url }).then(function(r){
+        btn.disabled = false; btn.textContent = 'Trocar foto';
+        if (!r.ok) { toast('Erro ao salvar foto: ' + (r.data.error || '')); return; }
+        estadoUsuario.avatarUrl = url;
+        aplicarAvatar(document.getElementById('perfil-avatar-preview'), estadoUsuario.nome, url);
+        aplicarAvatar(document.getElementById('user-avatar'), estadoUsuario.nome, url);
+        toast('Foto atualizada.');
+      });
+    });
   });
 
   sb.auth.onAuthStateChange(function(event, session){
@@ -924,7 +1000,7 @@
     var uid = session.user.id;
 
     sb.from('contas')
-      .select('hub_admin, must_change_password, pessoas(nome, email, filiais(nome))')
+      .select('hub_admin, must_change_password, pessoas(id, nome, email, avatar_url, filiais(nome))')
       .eq('id', uid)
       .maybeSingle()
       .then(function(res){
@@ -947,22 +1023,24 @@
         appShell.hidden = false;
 
         var pessoaNome = session.user.email;
+        var pessoaId = null;
+        var avatarUrl = null;
         var filialNome = '';
         var hubAdmin = false;
         if (res.data) {
           hubAdmin = !!res.data.hub_admin;
           if (res.data.pessoas) {
             pessoaNome = res.data.pessoas.nome || pessoaNome;
+            pessoaId = res.data.pessoas.id;
+            avatarUrl = res.data.pessoas.avatar_url || null;
             if (res.data.pessoas.filiais) filialNome = res.data.pessoas.filiais.nome || '';
           }
         }
-        estadoUsuario = { uid: uid, nome: pessoaNome, email: session.user.email, filialNome: filialNome, hubAdmin: hubAdmin };
+        estadoUsuario = { uid: uid, pessoaId: pessoaId, nome: pessoaNome, email: session.user.email, avatarUrl: avatarUrl, filialNome: filialNome, hubAdmin: hubAdmin };
 
         document.getElementById('user-name').textContent = pessoaNome;
         document.getElementById('user-sub').textContent = filialNome || session.user.email;
-        var av = document.getElementById('user-avatar');
-        av.textContent = iniciais(pessoaNome);
-        av.style.background = corAvatar(pessoaNome);
+        aplicarAvatar(document.getElementById('user-avatar'), pessoaNome, avatarUrl);
 
         document.getElementById('nav-config').hidden = !hubAdmin;
 
@@ -1508,10 +1586,18 @@
   }
 
   function renderOrgTree(){
+    // "Raiz" pra desenhar a árvore é quem não tem chefe, OU cujo chefe não
+    // veio na lista (visão recortada pra admin_area/usuário -- o chefe dela
+    // aparece como topo da fatia visível, mesmo tendo gestor próprio lá em
+    // cima que ela não enxerga).
+    var idsVisiveis = {};
+    (orgDados.pessoas || []).forEach(function(p){ idsVisiveis[p.id] = true; });
+
     var porGestor = {};
     (orgDados.pessoas || []).forEach(function(p){
       if (!p.ativo) return;
-      var chave = p.gestor_imediato_id || '__raiz__';
+      var temChefeVisivel = p.gestor_imediato_id && idsVisiveis[p.gestor_imediato_id];
+      var chave = temChefeVisivel ? p.gestor_imediato_id : '__raiz__';
       (porGestor[chave] = porGestor[chave] || []).push(p);
     });
     Object.keys(porGestor).forEach(function(k){ porGestor[k].sort(function(a,b){ return (a.nome||'').localeCompare(b.nome||'','pt-BR'); }); });
