@@ -208,7 +208,7 @@
   .org-chart li:first-child::after{ border-radius:8px 0 0 0; }
   .org-chart li:only-child{ padding-top:0; }
   .org-chart li:only-child::before, .org-chart li:only-child::after{ display:none; border:0 none; }
-  .org-chart li > ul{ padding-top:16px; }
+  .org-chart li > ul{ padding-top:16px; position:relative; }
   .org-chart li > ul::before{ content:''; position:absolute; top:0; left:50%; width:0; height:16px; border-left:1.5px solid var(--line); }
   .org-node-card{ display:inline-flex; flex-direction:column; align-items:center; gap:5px; background:var(--surface); border:1px solid var(--line-soft); border-radius:14px; padding:9px 9px 7px; box-shadow:var(--shadow-card); width:126px; position:relative; transition:box-shadow .15s, border-color .15s, transform .15s; }
   .org-node-card .avatar{ width:32px; height:32px; font-size:.64rem; flex-shrink:0; }
