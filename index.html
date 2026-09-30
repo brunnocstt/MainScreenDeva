@@ -186,17 +186,32 @@
   .org-pendencia-texto{ font-size:.82rem; color:var(--ink-soft); }
   .org-pendencia-texto b{ color:var(--ink); }
   .org-pendencia-acoes{ display:flex; gap:8px; flex-shrink:0; }
-  .org-tree{ padding:8px 0 40px; }
-  .org-node{ margin-left:28px; border-left:1px dashed var(--line); padding-left:20px; position:relative; }
-  .org-node.is-root{ margin-left:0; border-left:none; padding-left:0; }
-  .org-node-card{ display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--line-soft); border-radius:18px; padding:9px 12px; margin:6px 0; box-shadow:var(--shadow-card); max-width:420px; }
-  .org-node-card .avatar{ width:30px; height:30px; font-size:.68rem; flex-shrink:0; }
-  .org-node-info{ min-width:0; flex:1; }
-  .org-node-info .nome{ font-size:.83rem; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .org-node-info .cargo{ font-size:.72rem; color:var(--muted-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .org-node-mover{ all:unset; box-sizing:border-box; width:26px; height:26px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted-2); flex-shrink:0; }
+  .org-tree{ display:flex; gap:56px; align-items:flex-start; overflow-x:auto; overflow-y:hidden; padding:32px 24px 70px; scrollbar-width:thin; scrollbar-color:var(--line-soft) transparent; }
+  .org-tree::-webkit-scrollbar{ height:10px; }
+  .org-tree::-webkit-scrollbar-track{ background:transparent; }
+  .org-tree::-webkit-scrollbar-thumb{ background-color:var(--line-soft); border-radius:999px; border:3px solid var(--canvas); background-clip:padding-box; }
+  .org-chart, .org-chart ul{ display:flex; justify-content:center; }
+  .org-chart{ flex-shrink:0; }
+  .org-chart li{ list-style:none; position:relative; padding:34px 12px 0; text-align:center; }
+  .org-chart li::before, .org-chart li::after{ content:''; position:absolute; top:0; right:50%; width:50%; height:22px; border-top:1.5px solid var(--line); }
+  .org-chart li::after{ right:auto; left:50%; border-left:1.5px solid var(--line); }
+  .org-chart li:only-child{ padding-top:0; }
+  .org-chart li:only-child::before, .org-chart li:only-child::after{ display:none; }
+  .org-chart li:first-child::before{ border:0 none; }
+  .org-chart li:last-child::after{ border:0 none; }
+  .org-chart li:last-child::before{ border-right:1.5px solid var(--line); border-radius:0 8px 0 0; }
+  .org-chart li:first-child::after{ border-radius:8px 0 0 0; }
+  .org-chart li > ul{ padding-top:22px; }
+  .org-chart li > ul::before{ content:''; position:absolute; top:0; left:50%; width:0; height:22px; border-left:1.5px solid var(--line); }
+  .org-node-card{ display:inline-flex; flex-direction:column; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line-soft); border-radius:20px; padding:14px 14px 12px; box-shadow:var(--shadow-card); width:172px; position:relative; transition:box-shadow .15s, border-color .15s; }
+  .org-node-card:hover{ border-color:var(--accent); box-shadow:var(--shadow-lift); }
+  .org-node-card .avatar{ width:42px; height:42px; font-size:.8rem; flex-shrink:0; }
+  .org-node-info{ min-width:0; width:100%; }
+  .org-node-info .nome{ font-size:.8rem; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .org-node-info .cargo{ font-size:.7rem; color:var(--muted-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+  .org-node-mover{ all:unset; box-sizing:border-box; position:absolute; top:8px; right:8px; width:22px; height:22px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted-2); opacity:0; transition:opacity .15s, background .15s, color .15s; }
+  .org-node-card:hover .org-node-mover{ opacity:1; }
   .org-node-mover:hover{ background:var(--surface-2); color:var(--accent); }
-  .org-children{ }
   .table-wrap{ overflow-x:auto; }
   /* width:100% + table-layout AUTO (padrão do navegador) -- igual, literal,
      ao <table style={{width:"100%",borderCollapse:"collapse"}}> da
@@ -1639,26 +1654,36 @@
       return orgDados.caller.edicao_direta || pessoa.gestor_imediato_id === orgDados.caller.pessoa_id;
     }
 
-    function nodeHtml(pessoa, isRoot){
+    var CARGO_MINUSCULAS = { de:1, da:1, do:1, das:1, dos:1, e:1, a:1, o:1, ao:1, aos:1, em:1, no:1, na:1, nos:1, nas:1, para:1 };
+    function capitalizarCargo(s){
+      if (!s) return '';
+      return s.toLowerCase().split(' ').map(function(w, i){
+        if (!w) return w;
+        if (i > 0 && CARGO_MINUSCULAS[w]) return w;
+        return w.charAt(0).toUpperCase() + w.slice(1);
+      }).join(' ');
+    }
+
+    function nodeHtml(pessoa){
       var filhos = porGestor[pessoa.id] || [];
-      var html = '<div class="org-node' + (isRoot ? ' is-root' : '') + '">' +
+      var html = '<li>' +
         '<div class="org-node-card">' +
+          (podeMover(pessoa) ? '<button type="button" class="org-node-mover" title="Mover pra outro gestor" data-mover-pessoa="' + pessoa.id + '"><svg width="12" height="12"><use href="#i-pencil"/></svg></button>' : '') +
           '<span class="avatar" style="background:' + corAvatar(pessoa.nome) + '">' + iniciais(pessoa.nome) + '</span>' +
           '<div class="org-node-info"><div class="nome">' + escapeHtml(pessoa.nome) + '</div>' +
-            '<div class="cargo">' + escapeHtml(pessoa.cargo || '') + '</div></div>' +
-          (podeMover(pessoa) ? '<button type="button" class="org-node-mover" title="Mover pra outro gestor" data-mover-pessoa="' + pessoa.id + '"><svg width="14" height="14"><use href="#i-pencil"/></svg></button>' : '') +
+            '<div class="cargo">' + escapeHtml(capitalizarCargo(pessoa.cargo)) + '</div></div>' +
         '</div>';
       if (filhos.length) {
-        html += '<div class="org-children">' + filhos.map(function(f){ return nodeHtml(f, false); }).join('') + '</div>';
+        html += '<ul>' + filhos.map(function(f){ return nodeHtml(f); }).join('') + '</ul>';
       }
-      html += '</div>';
+      html += '</li>';
       return html;
     }
 
     var raizes = porGestor['__raiz__'] || [];
     var tree = document.getElementById('org-tree');
     if (!raizes.length) { tree.innerHTML = '<p class="modal-note">Ninguém no topo do organograma ainda (ninguém sem gestor imediato).</p>'; return; }
-    tree.innerHTML = raizes.map(function(p){ return nodeHtml(p, true); }).join('');
+    tree.innerHTML = raizes.map(function(p){ return '<ul class="org-chart">' + nodeHtml(p) + '</ul>'; }).join('');
 
     Array.prototype.forEach.call(tree.querySelectorAll('[data-mover-pessoa]'), function(btn){
       btn.addEventListener('click', function(){ abrirMoverModal(btn.getAttribute('data-mover-pessoa')); });
