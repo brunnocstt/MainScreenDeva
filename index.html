@@ -596,7 +596,7 @@
       <div id="org-pendencias" hidden style="margin-bottom:20px;"></div>
       <div class="gestao-toolbar">
         <div class="gestao-filter"><span>Filial</span><select id="org-filtro-filial"><option value="">Todas</option></select></div>
-        <div class="gestao-filter"><span>Área</span><select id="org-filtro-area"><option value="">Ir para...</option></select></div>
+        <div class="gestao-filter"><span>Área</span><select id="org-filtro-area"><option value="">Todas</option></select></div>
       </div>
       <div id="org-tree" class="org-tree"></div>
     </div>
@@ -1607,6 +1607,7 @@
 
   var orgFocoId = null; // id de quem está "em foco" na visão principal -- null = raiz
   var orgFiltroFilial = ''; // filial_id selecionado, '' = todas
+  var orgFiltroAreaGestorId = ''; // id do gestor da área selecionada, '' = todas -- convive com o filtro de filial
 
   // Áreas não são uma coluna no banco -- é só um atalho pra pular direto pro
   // ramo daquele gestor na árvore (o "responsável" de cada área, combinado
@@ -1738,10 +1739,22 @@
   // é assim mesmo na empresa fora da oficina). O card do gestor aparece
   // compacto (cinza) pra deixar claro que ele é só contexto, não é
   // necessariamente dessa filial.
+  function pessoaEstaSobGestor(pessoa, gestorId){
+    if (!gestorId) return true;
+    var atual = pessoa;
+    while (atual) {
+      if (atual.id === gestorId) return true;
+      atual = atual.gestor_imediato_id ? pessoaOrg(atual.gestor_imediato_id) : null;
+    }
+    return false;
+  }
+
   function renderOrgListaFilial(){
-    var pessoas = (orgDados.pessoas || []).filter(function(p){ return p.ativo && p.filial_id === orgFiltroFilial; });
+    var pessoas = (orgDados.pessoas || []).filter(function(p){
+      return p.ativo && p.filial_id === orgFiltroFilial && pessoaEstaSobGestor(p, orgFiltroAreaGestorId);
+    });
     var tree = document.getElementById('org-tree');
-    if (!pessoas.length) { tree.innerHTML = '<p class="modal-note">Ninguém ativo nessa filial.</p>'; return; }
+    if (!pessoas.length) { tree.innerHTML = '<p class="modal-note">Ninguém ativo nessa filial (com esse filtro de área).</p>'; return; }
 
     function podeMover(pessoa){
       return orgDados.caller.edicao_direta || pessoa.gestor_imediato_id === orgDados.caller.pessoa_id;
@@ -1961,12 +1974,12 @@
     renderOrgTree();
   });
   document.getElementById('org-filtro-area').addEventListener('change', function(e){
-    if (!e.target.value) return;
-    orgFiltroFilial = '';
-    document.getElementById('org-filtro-filial').value = '';
-    orgFocoId = e.target.value;
+    orgFiltroAreaGestorId = e.target.value;
+    // sem filtro de filial ativo: área continua pulando o foco na árvore
+    // direto. Com filial ativa, área só filtra dentro da lista da filial
+    // (os dois filtros convivem, nenhum reseta o outro).
+    if (!orgFiltroFilial && e.target.value) orgFocoId = e.target.value;
     renderOrgTree();
-    e.target.value = '';
   });
   selectView('hub');
 
