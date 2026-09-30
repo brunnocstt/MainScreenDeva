@@ -230,15 +230,6 @@
   .org-node-compacta .nome{ font-size:.66rem; }
   .org-node-compacta .cargo{ font-size:.58rem; }
   .org-node-compacta.org-node-clicavel:hover{ background:var(--accent-soft); transform:none; box-shadow:none; border-color:transparent; }
-  .org-lista-filial{ display:flex; flex-direction:column; gap:8px; max-width:640px; }
-  .org-lista-item{ display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--line-soft); border-radius:16px; padding:10px 12px; box-shadow:var(--shadow-card); }
-  .org-lista-item .avatar{ width:34px; height:34px; font-size:.7rem; flex-shrink:0; }
-  .org-lista-info{ min-width:0; flex-shrink:0; width:200px; }
-  .org-lista-info .nome{ font-size:.82rem; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .org-lista-info .cargo{ font-size:.72rem; color:var(--muted-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
-  .org-lista-gestor{ flex:1; font-size:.78rem; color:var(--muted); }
-  .org-lista-gestor b{ color:var(--ink-soft); font-weight:700; }
-  .org-lista-gestor i{ color:var(--muted-2); font-style:normal; }
   .table-wrap{ overflow-x:auto; }
   /* width:100% + table-layout AUTO (padrão do navegador) -- igual, literal,
      ao <table style={{width:"100%",borderCollapse:"collapse"}}> da
@@ -1742,27 +1733,50 @@
     });
   }
 
-  // Filtro de filial: lista simples (nome, cargo, pra quem responde -- o
-  // gestor pode estar em outra filial, é assim mesmo na empresa real fora
-  // da oficina) em vez de mexer na árvore.
+  // Filtro de filial: mesma visualização de cards+linhas de sempre, só que
+  // agrupada pelo gestor REAL de cada um (que pode estar em outra filial --
+  // é assim mesmo na empresa fora da oficina). O card do gestor aparece
+  // compacto (cinza) pra deixar claro que ele é só contexto, não é
+  // necessariamente dessa filial.
   function renderOrgListaFilial(){
     var pessoas = (orgDados.pessoas || []).filter(function(p){ return p.ativo && p.filial_id === orgFiltroFilial; });
-    pessoas.sort(function(a, b){ return (a.nome || '').localeCompare(b.nome || '', 'pt-BR'); });
     var tree = document.getElementById('org-tree');
     if (!pessoas.length) { tree.innerHTML = '<p class="modal-note">Ninguém ativo nessa filial.</p>'; return; }
+
     function podeMover(pessoa){
       return orgDados.caller.edicao_direta || pessoa.gestor_imediato_id === orgDados.caller.pessoa_id;
     }
-    tree.innerHTML = '<div class="org-lista-filial">' + pessoas.map(function(p){
-      var gestor = p.gestor_imediato_id ? pessoaOrg(p.gestor_imediato_id) : null;
-      return '<div class="org-lista-item">' +
-        '<span class="avatar" style="background:' + corAvatar(p.nome) + '">' + iniciais(p.nome) + '</span>' +
-        '<div class="org-lista-info"><div class="nome">' + escapeHtml(p.nome) + '</div>' +
-          '<div class="cargo">' + escapeHtml(capitalizarCargo(p.cargo)) + '</div></div>' +
-        '<div class="org-lista-gestor">' + (gestor ? 'Responde a <b>' + escapeHtml(gestor.nome) + '</b>' : '<i>Sem gestor definido</i>') + '</div>' +
-        (podeMover(p) ? '<button type="button" class="org-node-mover" style="position:static;opacity:1;" title="Mover pra outro gestor" data-mover-pessoa="' + p.id + '"><svg width="12" height="12"><use href="#i-pencil"/></svg></button>' : '') +
+    function cardHtmlSimples(pessoa, opts){
+      opts = opts || {};
+      return '<div class="org-node-card' + (opts.compacta ? ' org-node-compacta' : '') + '">' +
+        (podeMover(pessoa) ? '<button type="button" class="org-node-mover" title="Mover pra outro gestor" data-mover-pessoa="' + pessoa.id + '"><svg width="12" height="12"><use href="#i-pencil"/></svg></button>' : '') +
+        '<span class="avatar" style="background:' + corAvatar(pessoa.nome) + '">' + iniciais(pessoa.nome) + '</span>' +
+        '<div class="org-node-info"><div class="nome">' + escapeHtml(pessoa.nome) + '</div>' +
+          '<div class="cargo">' + escapeHtml(capitalizarCargo(pessoa.cargo)) + '</div></div>' +
       '</div>';
-    }).join('') + '</div>';
+    }
+
+    var porGestor = {};
+    pessoas.forEach(function(p){
+      var chave = p.gestor_imediato_id || ('__solo__' + p.id);
+      (porGestor[chave] = porGestor[chave] || []).push(p);
+    });
+    Object.keys(porGestor).forEach(function(k){ porGestor[k].sort(function(a,b){ return (a.nome||'').localeCompare(b.nome||'','pt-BR'); }); });
+
+    var grupos = Object.keys(porGestor).map(function(chave){
+      var filhos = porGestor[chave];
+      var gestor = chave.indexOf('__solo__') === 0 ? null : pessoaOrg(chave);
+      var html = gestor
+        ? '<ul class="org-chart"><li>' + cardHtmlSimples(gestor, { compacta: true }) +
+            '<ul>' + filhos.map(function(f){ return '<li>' + cardHtmlSimples(f) + '</li>'; }).join('') + '</ul>' +
+          '</li></ul>'
+        : '<ul class="org-chart"><li>' + cardHtmlSimples(filhos[0]) + '</li></ul>';
+      return { count: filhos.length, html: html };
+    });
+    grupos.sort(function(a, b){ return b.count - a.count; });
+
+    tree.innerHTML = '<div class="org-tree-soltos" style="flex-wrap:wrap;">' + grupos.map(function(g){ return g.html; }).join('') + '</div>';
+
     Array.prototype.forEach.call(tree.querySelectorAll('[data-mover-pessoa]'), function(btn){
       btn.addEventListener('click', function(e){ e.stopPropagation(); abrirMoverModal(btn.getAttribute('data-mover-pessoa')); });
     });
