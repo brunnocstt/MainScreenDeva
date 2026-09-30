@@ -676,8 +676,8 @@
       url:'https://topdealerdeva.albusdata.com.br', schema:'topdealer', table:'perfis' },
     { id:'ferramentaria', icon:'i-wrench', name:'Ferramentaria Deva', level:'Oficina',
       url:'https://ferramentariadeva.albusdata.com.br', schema:null },
-    { id:'pm', icon:'i-kanban', name:'Project Management', level:'Coordenação',
-      url:'https://gestaoprojetosdeva.albusdata.com.br', schema:null },
+    { id:'pm', icon:'i-kanban', name:'Gestão de Demandas', level:'Coordenação',
+      url:'https://gestaoprojetosdeva.albusdata.com.br', schema:null, generico:true },
     { id:'padroes', icon:'i-clipboard', name:'Auditorias de Padrões', level:'Gerência',
       url:'https://padroesdeva.albusdata.com.br', schema:null }
   ];
@@ -924,6 +924,18 @@
     grid.innerHTML = APPS.map(function(app){ return appCardHtml(app, 'checando'); }).join('');
 
     APPS.forEach(function(app, idx){
+      if (app.generico) {
+        // Apps do modelo novo: acesso é public.acessos_app por pessoa_id,
+        // não uma tabela de membros no schema do app.
+        sb.from('contas').select('pessoa_id').eq('id', uid).maybeSingle().then(function(cRes){
+          if (cRes.error || !cRes.data) { updateAppCard(idx, app, 'soon'); return; }
+          sb.from('acessos_app').select('nivel').eq('pessoa_id', cRes.data.pessoa_id).eq('app', app.id).maybeSingle().then(function(res){
+            if (res.error) { updateAppCard(idx, app, 'soon'); return; }
+            updateAppCard(idx, app, res.data ? 'active' : 'locked');
+          });
+        });
+        return;
+      }
       if (!app.schema) { updateAppCard(idx, app, 'soon'); return; }
       sb.schema(app.schema).from(app.table).select('ativo').eq('id', uid).maybeSingle().then(function(res){
         if (res.error) { updateAppCard(idx, app, 'soon'); return; }
@@ -1012,9 +1024,15 @@
   function contaDaPessoa(pessoaId){
     return (gestaoDados.contas || []).find(function(c){ return c.pessoa_id === pessoaId; }) || null;
   }
-  function acessoApp(appKey, contaId){
+  function acessoApp(appKey, pessoaId, contaId){
+    // Apps do modelo novo (public.acessos_app) casam por pessoa_id -- a
+    // pessoa pode ter acesso concedido antes mesmo de ter login. Apps do
+    // modelo antigo (tabela de membros no schema do app) casam por conta_id.
     var lista = (gestaoDados.acessos || {})[appKey] || [];
-    return lista.find(function(a){ return a.id === contaId; }) || null;
+    var appDef = APPS.find(function(a){ return a.id === appKey; });
+    var chave = (appDef && appDef.generico) ? pessoaId : contaId;
+    if (!chave) return null;
+    return lista.find(function(a){ return a.id === chave; }) || null;
   }
   function filiaisDaPessoa(pessoaId){
     return (gestaoDados.pessoa_filiais || [])
@@ -1075,9 +1093,12 @@
 
     // Coluna de acesso é só leitura -- editar (marcar/desmarcar app) acontece
     // dentro do modal "Editar acesso", não clicando pill por pill na linha.
-    var appsComAcesso = conta
-      ? APPS.filter(function(a){ return gestaoDados.apps_disponiveis.indexOf(a.id) !== -1 && !!acessoApp(a.id, conta.id); }).map(function(a){ return a.name; })
-      : [];
+    // Apps do modelo novo podem ter acesso concedido mesmo sem login ainda
+    // (fica pendente até a pessoa logar pela 1ª vez) -- por isso não depende
+    // mais de "conta" existir, só apps do modelo antigo dependem.
+    var appsComAcesso = APPS.filter(function(a){
+      return gestaoDados.apps_disponiveis.indexOf(a.id) !== -1 && !!acessoApp(a.id, p.id, conta && conta.id);
+    }).map(function(a){ return a.name; });
     var acessoCell = appsComAcesso.length
       ? '<span style="font-size:.76rem;color:var(--ink-soft);">' + escapeHtml(appsComAcesso.join(', ')) + '</span>'
       : '<span style="font-size:.76rem;color:var(--muted-2);">nenhum</span>';
@@ -1178,7 +1199,7 @@
     var wrap = document.getElementById('edit-modal-apps');
     wrap.innerHTML = APPS.map(function(a){
       var disponivel = gestaoDados.apps_disponiveis.indexOf(a.id) !== -1;
-      var marcado = disponivel && conta && !!acessoApp(a.id, conta.id);
+      var marcado = disponivel && !!acessoApp(a.id, p.id, conta && conta.id);
       if (!disponivel) {
         return '<div class="app-check-row disabled"><input type="checkbox" disabled><label>' + escapeHtml(a.name) + '</label><span class="em-breve">Em breve</span></div>';
       }
@@ -1299,7 +1320,7 @@
     var mudancas = [];
     Array.prototype.forEach.call(checks, function(chk){
       var appId = chk.getAttribute('data-app-id');
-      var tinhaAntes = conta && !!acessoApp(appId, conta.id);
+      var tinhaAntes = !!acessoApp(appId, p.id, conta && conta.id);
       if (chk.checked !== tinhaAntes) {
         mudancas.push({ tipo: 'app', app: appId, conceder: chk.checked });
       }
@@ -1353,7 +1374,7 @@
       }
       var body = m.conceder
         ? { action: 'conceder_acesso', app: m.app, conta_id: contaIdAtual, pessoa_id: p.id }
-        : { action: 'revogar_acesso', app: m.app, conta_id: contaIdAtual };
+        : { action: 'revogar_acesso', app: m.app, conta_id: contaIdAtual, pessoa_id: p.id };
       chamarHub(body).then(function(res){
         if (!res.ok) { toast('Erro ao salvar "' + m.app + '": ' + (res.data.error || '')); saveBtn.disabled = false; saveBtn.textContent = 'Salvar'; return; }
         if (res.data.conta_id) contaIdAtual = res.data.conta_id;
