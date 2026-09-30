@@ -186,10 +186,14 @@
   .org-pendencia-texto{ font-size:.82rem; color:var(--ink-soft); }
   .org-pendencia-texto b{ color:var(--ink); }
   .org-pendencia-acoes{ display:flex; gap:8px; flex-shrink:0; }
-  .org-tree{ display:flex; gap:56px; align-items:flex-start; overflow-x:auto; overflow-y:hidden; padding:32px 24px 70px; scrollbar-width:thin; scrollbar-color:var(--line-soft) transparent; }
+  .org-tree{ overflow-x:auto; overflow-y:hidden; padding:32px 24px 70px; scrollbar-width:thin; scrollbar-color:var(--line-soft) transparent; }
   .org-tree::-webkit-scrollbar{ height:10px; }
   .org-tree::-webkit-scrollbar-track{ background:transparent; }
   .org-tree::-webkit-scrollbar-thumb{ background-color:var(--line-soft); border-radius:999px; border:3px solid var(--canvas); background-clip:padding-box; }
+  .org-tree-principal, .org-tree-soltos{ display:flex; gap:56px; align-items:flex-start; }
+  .org-tree-soltos-label{ display:flex; align-items:center; gap:10px; font-size:.72rem; font-weight:800; color:var(--muted-2); text-transform:uppercase; letter-spacing:.05em; margin:40px 0 16px; }
+  .org-tree-soltos-label::after{ content:''; flex:1; height:1px; background:var(--line-soft); }
+  .org-tree-soltos{ gap:40px; }
   .org-chart, .org-chart ul{ display:flex; justify-content:center; }
   .org-chart{ flex-shrink:0; }
   .org-chart li{ list-style:none; position:relative; padding:34px 12px 0; text-align:center; }
@@ -1715,7 +1719,21 @@
     var raizes = porGestor['__raiz__'] || [];
     var tree = document.getElementById('org-tree');
     if (!raizes.length) { tree.innerHTML = '<p class="modal-note">Ninguém no topo do organograma ainda (ninguém sem gestor imediato).</p>'; return; }
-    tree.innerHTML = raizes.map(function(p){ return '<ul class="org-chart">' + nodeHtml(p) + '</ul>'; }).join('');
+
+    // Só a raiz com mais gente embaixo vira a árvore principal (normalmente
+    // o presidente). As demais raízes (ex: Patricia, Fabiola, Yasmin --
+    // pessoas sem gestor direto cadastrado) ficam soltas, numa faixa
+    // separada abaixo, sem linha de conexão com a árvore principal.
+    var raizesOrdenadas = raizes.slice().sort(function(a, b){ return contarDescendentes(b) - contarDescendentes(a); });
+    var principal = raizesOrdenadas[0];
+    var soltas = raizesOrdenadas.slice(1);
+
+    var html = '<div class="org-tree-principal">' + '<ul class="org-chart">' + nodeHtml(principal) + '</ul>' + '</div>';
+    if (soltas.length) {
+      html += '<div class="org-tree-soltos-label">Sem vínculo direto no organograma</div>' +
+        '<div class="org-tree-soltos">' + soltas.map(function(p){ return '<ul class="org-chart">' + nodeHtml(p) + '</ul>'; }).join('') + '</div>';
+    }
+    tree.innerHTML = html;
 
     Array.prototype.forEach.call(tree.querySelectorAll('[data-mover-pessoa]'), function(btn){
       btn.addEventListener('click', function(e){ e.stopPropagation(); abrirMoverModal(btn.getAttribute('data-mover-pessoa')); });
