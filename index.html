@@ -588,14 +588,14 @@
   <div class="modal-card">
    <div class="modal-card-scroll">
     <div class="modal-head"><h2>Meu perfil</h2><button type="button" class="modal-close" id="perfil-modal-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px;">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;">
       <span class="avatar" id="perfil-avatar-preview" style="width:76px;height:76px;font-size:1.6rem;position:relative;flex-shrink:0;"></span>
       <input type="file" id="perfil-foto-input" accept="image/png,image/jpeg,image/webp" hidden>
       <div style="display:flex;flex-direction:column;gap:8px;flex:1;">
         <button type="button" class="btn btn-ghost" id="perfil-trocar-foto" style="padding:8px 16px;">Enviar foto</button>
-        <button type="button" class="btn btn-ghost" id="perfil-importar-teams" style="padding:8px 16px;">Importar do Teams</button>
       </div>
     </div>
+    <p class="modal-note" style="margin:0 0 18px;">Dica: dá pra salvar sua foto do Teams (botão direito → salvar imagem) e enviar aqui.</p>
     <div class="field" style="margin-bottom:14px;">
       <label style="display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:6px;">Nome completo</label>
       <input type="text" id="perfil-nome" disabled style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font-size:.9rem;">
@@ -861,14 +861,13 @@
   document.getElementById('perfil-trocar-foto').addEventListener('click', function(){
     document.getElementById('perfil-foto-input').click();
   });
-  // TODO: falta o padrão real do link público da foto do Teams (depende de
-  // como o tenant Microsoft 365 da Deva está configurado) -- assim que o
-  // Bruno confirmar, troca esse toast por um fetch de verdade puxando
-  // https://.../<padrão>?email=estadoUsuario.email e salvando a URL (não a
-  // imagem em si) em pessoas.avatar_url via salvar_meu_avatar.
-  document.getElementById('perfil-importar-teams').addEventListener('click', function(){
-    toast('Importar do Teams ainda não está configurado -- falta confirmar o link do tenant.');
-  });
+  // Importar direto do Teams foi avaliado e descartado por enquanto --
+  // exigiria um App Registration no Azure AD da Deva (Microsoft Graph),
+  // e o Bruno decidiu não fazer isso sem autorização formal da SI. Se
+  // isso for aprovado um dia, o fluxo vira: popup de login Microsoft
+  // (OAuth delegado, escopo User.Read -- cada pessoa só acessa a própria
+  // foto) -> GET https://graph.microsoft.com/v1.0/me/photo/$value ->
+  // sobe pro bucket 'avatars' -> salvar_meu_avatar. Até lá, só upload manual.
   document.getElementById('perfil-foto-input').addEventListener('change', function(e){
     var file = e.target.files[0];
     e.target.value = ''; // permite escolher o mesmo arquivo de novo depois
