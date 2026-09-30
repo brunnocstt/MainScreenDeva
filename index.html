@@ -230,6 +230,15 @@
   .org-node-compacta .nome{ font-size:.66rem; }
   .org-node-compacta .cargo{ font-size:.58rem; }
   .org-node-compacta.org-node-clicavel:hover{ background:var(--accent-soft); transform:none; box-shadow:none; border-color:transparent; }
+  .org-lista-filial{ display:flex; flex-direction:column; gap:8px; max-width:640px; }
+  .org-lista-item{ display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--line-soft); border-radius:16px; padding:10px 12px; box-shadow:var(--shadow-card); }
+  .org-lista-item .avatar{ width:34px; height:34px; font-size:.7rem; flex-shrink:0; }
+  .org-lista-info{ min-width:0; flex-shrink:0; width:200px; }
+  .org-lista-info .nome{ font-size:.82rem; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .org-lista-info .cargo{ font-size:.72rem; color:var(--muted-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+  .org-lista-gestor{ flex:1; font-size:.78rem; color:var(--muted); }
+  .org-lista-gestor b{ color:var(--ink-soft); font-weight:700; }
+  .org-lista-gestor i{ color:var(--muted-2); font-style:normal; }
   .table-wrap{ overflow-x:auto; }
   /* width:100% + table-layout AUTO (padrão do navegador) -- igual, literal,
      ao <table style={{width:"100%",borderCollapse:"collapse"}}> da
@@ -1621,10 +1630,22 @@
     { nome: 'Marketing', gestorNome: 'Gisele Fatima Da Silva' }
   ];
 
+  var CARGO_MINUSCULAS = { de:1, da:1, do:1, das:1, dos:1, e:1, a:1, o:1, ao:1, aos:1, em:1, no:1, na:1, nos:1, nas:1, para:1 };
+  function capitalizarCargo(s){
+    if (!s) return '';
+    return s.toLowerCase().split(' ').map(function(w, i){
+      if (!w) return w;
+      if (i > 0 && CARGO_MINUSCULAS[w]) return w;
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    }).join(' ');
+  }
+
+  // A empresa NÃO é organizada por filial (só a oficina tem gestor local de
+  // verdade -- vendas, administrativo etc. respondem a gente de outra
+  // filial) -- por isso o filtro de filial não pode cortar a árvore igual o
+  // de área faz. Ele vira uma lista à parte (ver renderOrgListaFilial).
   function construirPorGestor(){
-    var lista = (orgDados.pessoas || []).filter(function(p){
-      return !orgFiltroFilial || p.filial_id === orgFiltroFilial;
-    });
+    var lista = orgDados.pessoas || [];
     var idsVisiveis = {};
     lista.forEach(function(p){ idsVisiveis[p.id] = true; });
     var porGestor = {};
@@ -1721,7 +1742,34 @@
     });
   }
 
+  // Filtro de filial: lista simples (nome, cargo, pra quem responde -- o
+  // gestor pode estar em outra filial, é assim mesmo na empresa real fora
+  // da oficina) em vez de mexer na árvore.
+  function renderOrgListaFilial(){
+    var pessoas = (orgDados.pessoas || []).filter(function(p){ return p.ativo && p.filial_id === orgFiltroFilial; });
+    pessoas.sort(function(a, b){ return (a.nome || '').localeCompare(b.nome || '', 'pt-BR'); });
+    var tree = document.getElementById('org-tree');
+    if (!pessoas.length) { tree.innerHTML = '<p class="modal-note">Ninguém ativo nessa filial.</p>'; return; }
+    function podeMover(pessoa){
+      return orgDados.caller.edicao_direta || pessoa.gestor_imediato_id === orgDados.caller.pessoa_id;
+    }
+    tree.innerHTML = '<div class="org-lista-filial">' + pessoas.map(function(p){
+      var gestor = p.gestor_imediato_id ? pessoaOrg(p.gestor_imediato_id) : null;
+      return '<div class="org-lista-item">' +
+        '<span class="avatar" style="background:' + corAvatar(p.nome) + '">' + iniciais(p.nome) + '</span>' +
+        '<div class="org-lista-info"><div class="nome">' + escapeHtml(p.nome) + '</div>' +
+          '<div class="cargo">' + escapeHtml(capitalizarCargo(p.cargo)) + '</div></div>' +
+        '<div class="org-lista-gestor">' + (gestor ? 'Responde a <b>' + escapeHtml(gestor.nome) + '</b>' : '<i>Sem gestor definido</i>') + '</div>' +
+        (podeMover(p) ? '<button type="button" class="org-node-mover" style="position:static;opacity:1;" title="Mover pra outro gestor" data-mover-pessoa="' + p.id + '"><svg width="12" height="12"><use href="#i-pencil"/></svg></button>' : '') +
+      '</div>';
+    }).join('') + '</div>';
+    Array.prototype.forEach.call(tree.querySelectorAll('[data-mover-pessoa]'), function(btn){
+      btn.addEventListener('click', function(e){ e.stopPropagation(); abrirMoverModal(btn.getAttribute('data-mover-pessoa')); });
+    });
+  }
+
   function renderOrgTree(){
+    if (orgFiltroFilial) { renderOrgListaFilial(); return; }
     // "Raiz" pra desenhar a árvore é quem não tem chefe, OU cujo chefe não
     // veio na lista (visão recortada pra admin_area/usuário -- o chefe dela
     // aparece como topo da fatia visível, mesmo tendo gestor próprio lá em
@@ -1737,16 +1785,6 @@
 
     function podeMover(pessoa){
       return orgDados.caller.edicao_direta || pessoa.gestor_imediato_id === orgDados.caller.pessoa_id;
-    }
-
-    var CARGO_MINUSCULAS = { de:1, da:1, do:1, das:1, dos:1, e:1, a:1, o:1, ao:1, aos:1, em:1, no:1, na:1, nos:1, nas:1, para:1 };
-    function capitalizarCargo(s){
-      if (!s) return '';
-      return s.toLowerCase().split(' ').map(function(w, i){
-        if (!w) return w;
-        if (i > 0 && CARGO_MINUSCULAS[w]) return w;
-        return w.charAt(0).toUpperCase() + w.slice(1);
-      }).join(' ');
     }
 
     // Card de uma pessoa. `compacta` = card pequeno da trilha de ancestrais;
