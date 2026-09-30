@@ -190,10 +190,12 @@
   .org-tree::-webkit-scrollbar{ height:10px; }
   .org-tree::-webkit-scrollbar-track{ background:transparent; }
   .org-tree::-webkit-scrollbar-thumb{ background-color:var(--line-soft); border-radius:999px; border:3px solid var(--canvas); background-clip:padding-box; }
-  .org-tree-principal, .org-tree-soltos{ display:flex; gap:56px; align-items:flex-start; }
+  .org-tree-principal{ display:flex; flex-direction:column; align-items:center; }
+  .org-tree-soltos{ display:flex; gap:40px; align-items:flex-start; }
   .org-tree-soltos-label{ display:flex; align-items:center; gap:10px; font-size:.72rem; font-weight:800; color:var(--muted-2); text-transform:uppercase; letter-spacing:.05em; margin:40px 0 16px; }
   .org-tree-soltos-label::after{ content:''; flex:1; height:1px; background:var(--line-soft); }
-  .org-tree-soltos{ gap:40px; }
+  .org-breadcrumb{ display:flex; flex-direction:column; align-items:center; }
+  .org-breadcrumb-line{ width:1.5px; height:18px; background:var(--line); }
   .org-chart, .org-chart ul{ display:flex; justify-content:center; }
   .org-chart{ flex-shrink:0; }
   .org-chart li{ list-style:none; position:relative; padding:34px 12px 0; text-align:center; }
@@ -207,17 +209,25 @@
   .org-chart li:first-child::after{ border-radius:8px 0 0 0; }
   .org-chart li > ul{ padding-top:22px; }
   .org-chart li > ul::before{ content:''; position:absolute; top:0; left:50%; width:0; height:22px; border-left:1.5px solid var(--line); }
-  .org-node-card{ display:inline-flex; flex-direction:column; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line-soft); border-radius:20px; padding:14px 14px 12px; box-shadow:var(--shadow-card); width:172px; position:relative; transition:box-shadow .15s, border-color .15s; }
-  .org-node-card:hover{ border-color:var(--accent); box-shadow:var(--shadow-lift); }
+  .org-node-card{ display:inline-flex; flex-direction:column; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line-soft); border-radius:20px; padding:14px 14px 12px; box-shadow:var(--shadow-card); width:172px; position:relative; transition:box-shadow .15s, border-color .15s, transform .15s; }
   .org-node-card .avatar{ width:42px; height:42px; font-size:.8rem; flex-shrink:0; }
   .org-node-info{ min-width:0; width:100%; }
   .org-node-info .nome{ font-size:.8rem; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .org-node-info .cargo{ font-size:.7rem; color:var(--muted-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
-  .org-node-mover{ all:unset; box-sizing:border-box; position:absolute; top:8px; right:8px; width:22px; height:22px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted-2); opacity:0; transition:opacity .15s, background .15s, color .15s; }
+  .org-node-mover{ all:unset; box-sizing:border-box; position:absolute; top:8px; right:8px; width:22px; height:22px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted-2); opacity:0; transition:opacity .15s, background .15s, color .15s; z-index:3; }
   .org-node-card:hover .org-node-mover{ opacity:1; }
   .org-node-mover:hover{ background:var(--surface-2); color:var(--accent); }
-  .org-node-toggle{ all:unset; box-sizing:border-box; position:absolute; left:50%; bottom:-11px; transform:translateX(-50%); min-width:22px; height:22px; padding:0 5px; border-radius:999px; background:var(--surface); border:1.5px solid var(--line); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:.68rem; font-weight:800; color:var(--muted); z-index:2; transition:border-color .15s, color .15s, background .15s; }
-  .org-node-toggle:hover{ border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+  .org-node-badge{ position:absolute; left:50%; bottom:-11px; transform:translateX(-50%); min-width:22px; height:22px; padding:0 6px; border-radius:999px; background:var(--surface); border:1.5px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:.68rem; font-weight:800; color:var(--muted); z-index:2; }
+  .org-node-clicavel{ cursor:pointer; }
+  .org-node-clicavel:hover{ border-color:var(--accent); box-shadow:var(--shadow-lift); transform:translateY(-2px); }
+  .org-node-clicavel:hover .org-node-badge{ border-color:var(--accent); color:var(--accent); }
+  .org-node-atual{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-tint-10); }
+  .org-node-compacta{ flex-direction:row; width:auto; min-width:190px; padding:7px 14px 7px 8px; border-radius:16px; gap:10px; box-shadow:none; background:var(--surface-2); border-color:transparent; }
+  .org-node-compacta .avatar{ width:26px; height:26px; font-size:.64rem; }
+  .org-node-compacta .org-node-info{ text-align:left; }
+  .org-node-compacta .nome{ font-size:.76rem; }
+  .org-node-compacta .cargo{ font-size:.65rem; }
+  .org-node-compacta.org-node-clicavel:hover{ background:var(--accent-soft); transform:none; box-shadow:none; border-color:transparent; }
   .table-wrap{ overflow-x:auto; }
   /* width:100% + table-layout AUTO (padrão do navegador) -- igual, literal,
      ao <table style={{width:"100%",borderCollapse:"collapse"}}> da
@@ -1589,7 +1599,7 @@
     });
   }
 
-  var orgColapsados = {}; // pessoa.id -> true quando os filhos dela estão escondidos
+  var orgFocoId = null; // id de quem está "em foco" na visão principal -- null = raiz
 
   function construirPorGestor(){
     var idsVisiveis = {};
@@ -1605,25 +1615,12 @@
     return porGestor;
   }
 
-  // Meio-termo entre árvore toda horizontal (fica gigante) e lista vertical
-  // (fica sem noção de estrutura): mostra raiz + primeiro nível por padrão,
-  // o resto começa recolhido -- a pessoa expande só o que quer inspecionar.
-  function inicializarColapso(porGestor){
-    orgColapsados = {};
-    function marcar(pessoa, depth){
-      var filhos = porGestor[pessoa.id] || [];
-      if (depth >= 1 && filhos.length) orgColapsados[pessoa.id] = true;
-      filhos.forEach(function(f){ marcar(f, depth + 1); });
-    }
-    (porGestor['__raiz__'] || []).forEach(function(p){ marcar(p, 0); });
-  }
-
   function carregarOrganograma(){
+    orgFocoId = null;
     document.getElementById('org-tree').innerHTML = '<p class="modal-note">carregando…</p>';
     chamarOrganograma({ action: 'listar' }).then(function(res){
       if (!res.ok) { toast('Erro ao carregar organograma: ' + (res.data.error || '')); return; }
       orgDados = res.data;
-      inicializarColapso(construirPorGestor());
       renderOrgPendencias();
       renderOrgTree();
     });
@@ -1697,19 +1694,32 @@
       }).join(' ');
     }
 
-    function nodeHtml(pessoa){
+    // Card de uma pessoa. `compacta` = card pequeno da trilha de ancestrais;
+    // `clicavel` = tem filhos e pode ser focado (o card inteiro é o alvo do
+    // clique, não só um botão); `atual` = é quem está em foco agora.
+    function cardHtml(pessoa, opts){
+      opts = opts || {};
       var filhos = porGestor[pessoa.id] || [];
       var temFilhos = filhos.length > 0;
-      var colapsado = temFilhos && !!orgColapsados[pessoa.id];
-      var html = '<li>' +
-        '<div class="org-node-card">' +
-          (podeMover(pessoa) ? '<button type="button" class="org-node-mover" title="Mover pra outro gestor" data-mover-pessoa="' + pessoa.id + '"><svg width="12" height="12"><use href="#i-pencil"/></svg></button>' : '') +
-          '<span class="avatar" style="background:' + corAvatar(pessoa.nome) + '">' + iniciais(pessoa.nome) + '</span>' +
-          '<div class="org-node-info"><div class="nome">' + escapeHtml(pessoa.nome) + '</div>' +
-            '<div class="cargo">' + escapeHtml(capitalizarCargo(pessoa.cargo)) + '</div></div>' +
-          (temFilhos ? '<button type="button" class="org-node-toggle" data-toggle-pessoa="' + pessoa.id + '" title="' + (colapsado ? 'Expandir' : 'Recolher') + '">' + (colapsado ? contarDescendentes(pessoa) : '&minus;') + '</button>' : '') +
-        '</div>';
-      if (temFilhos && !colapsado) {
+      var classes = 'org-node-card' +
+        (opts.compacta ? ' org-node-compacta' : '') +
+        (opts.atual ? ' org-node-atual' : '') +
+        (temFilhos && opts.clicavel ? ' org-node-clicavel' : '');
+      return '<div class="' + classes + '"' + (temFilhos && opts.clicavel ? ' data-foco-pessoa="' + pessoa.id + '"' : '') + '>' +
+        (podeMover(pessoa) ? '<button type="button" class="org-node-mover" title="Mover pra outro gestor" data-mover-pessoa="' + pessoa.id + '"><svg width="12" height="12"><use href="#i-pencil"/></svg></button>' : '') +
+        '<span class="avatar" style="background:' + corAvatar(pessoa.nome) + '">' + iniciais(pessoa.nome) + '</span>' +
+        '<div class="org-node-info"><div class="nome">' + escapeHtml(pessoa.nome) + '</div>' +
+          '<div class="cargo">' + escapeHtml(capitalizarCargo(pessoa.cargo)) + '</div></div>' +
+        (temFilhos && !opts.compacta ? '<span class="org-node-badge">' + contarDescendentes(pessoa) + '</span>' : '') +
+      '</div>';
+    }
+
+    // Renderizador recursivo de verdade, só usado na faixa "sem vínculo
+    // direto" (poucas pessoas, cabe mostrar a ramificação inteira ali).
+    function nodeHtml(pessoa){
+      var filhos = porGestor[pessoa.id] || [];
+      var html = '<li>' + cardHtml(pessoa, {});
+      if (filhos.length) {
         html += '<ul>' + filhos.map(function(f){ return nodeHtml(f); }).join('') + '</ul>';
       }
       html += '</li>';
@@ -1721,14 +1731,44 @@
     if (!raizes.length) { tree.innerHTML = '<p class="modal-note">Ninguém no topo do organograma ainda (ninguém sem gestor imediato).</p>'; return; }
 
     // Só a raiz com mais gente embaixo vira a árvore principal (normalmente
-    // o presidente). As demais raízes (ex: Patricia, Fabiola, Yasmin --
-    // pessoas sem gestor direto cadastrado) ficam soltas, numa faixa
-    // separada abaixo, sem linha de conexão com a árvore principal.
+    // o presidente). As demais raízes (ex: Yasmin, Francyelle -- pessoas sem
+    // gestor direto cadastrado) ficam soltas, numa faixa separada abaixo,
+    // sem linha de conexão com a árvore principal.
     var raizesOrdenadas = raizes.slice().sort(function(a, b){ return contarDescendentes(b) - contarDescendentes(a); });
-    var principal = raizesOrdenadas[0];
+    var raizPrincipal = raizesOrdenadas[0];
     var soltas = raizesOrdenadas.slice(1);
 
-    var html = '<div class="org-tree-principal">' + '<ul class="org-chart">' + nodeHtml(principal) + '</ul>' + '</div>';
+    // Drill-down: em vez de expandir a árvore inteira, só mostra a trilha de
+    // ancestrais (compacta) até quem está em foco, e os filhos diretos DELE
+    // -- clicar num filho com gente embaixo foca nele (a visão "nicha" cada
+    // vez mais); clicar num ancestral da trilha volta pra ele.
+    if (!orgFocoId || !pessoaOrg(orgFocoId)) orgFocoId = raizPrincipal.id;
+    var foco = pessoaOrg(orgFocoId);
+    var pertenceAPrincipal = false;
+    var checar = foco;
+    while (checar) {
+      if (checar.id === raizPrincipal.id) { pertenceAPrincipal = true; break; }
+      checar = checar.gestor_imediato_id ? pessoaOrg(checar.gestor_imediato_id) : null;
+    }
+    if (!pertenceAPrincipal) { orgFocoId = raizPrincipal.id; foco = raizPrincipal; }
+
+    var ancestrais = [];
+    var cursor = foco.gestor_imediato_id ? pessoaOrg(foco.gestor_imediato_id) : null;
+    while (cursor) { ancestrais.unshift(cursor); cursor = cursor.gestor_imediato_id ? pessoaOrg(cursor.gestor_imediato_id) : null; }
+
+    var filhosFoco = porGestor[foco.id] || [];
+    var html = '<div class="org-tree-principal">';
+    if (ancestrais.length) {
+      html += '<div class="org-breadcrumb">' + ancestrais.map(function(p){
+        return cardHtml(p, { compacta: true, clicavel: true }) + '<div class="org-breadcrumb-line"></div>';
+      }).join('') + '</div>';
+    }
+    html += '<ul class="org-chart"><li>' + cardHtml(foco, { atual: true }) +
+      (filhosFoco.length ? '<ul>' + filhosFoco.map(function(f){ return '<li>' + cardHtml(f, { clicavel: true }) + '</li>'; }).join('') + '</ul>' : '') +
+      '</li></ul>';
+    if (!filhosFoco.length) html += '<p class="modal-note" style="margin-top:6px;">Sem subordinados diretos.</p>';
+    html += '</div>';
+
     if (soltas.length) {
       html += '<div class="org-tree-soltos-label">Sem vínculo direto no organograma</div>' +
         '<div class="org-tree-soltos">' + soltas.map(function(p){ return '<ul class="org-chart">' + nodeHtml(p) + '</ul>'; }).join('') + '</div>';
@@ -1738,11 +1778,10 @@
     Array.prototype.forEach.call(tree.querySelectorAll('[data-mover-pessoa]'), function(btn){
       btn.addEventListener('click', function(e){ e.stopPropagation(); abrirMoverModal(btn.getAttribute('data-mover-pessoa')); });
     });
-    Array.prototype.forEach.call(tree.querySelectorAll('[data-toggle-pessoa]'), function(btn){
-      btn.addEventListener('click', function(e){
+    Array.prototype.forEach.call(tree.querySelectorAll('[data-foco-pessoa]'), function(el){
+      el.addEventListener('click', function(e){
         e.stopPropagation();
-        var id = btn.getAttribute('data-toggle-pessoa');
-        orgColapsados[id] = !orgColapsados[id];
+        orgFocoId = el.getAttribute('data-foco-pessoa');
         renderOrgTree();
       });
     });
