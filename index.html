@@ -594,6 +594,10 @@
     <div id="view-organograma" hidden>
       <div class="page-head"><h1>Organograma</h1><p class="sub">Estrutura da empresa -- quem responde para quem.</p></div>
       <div id="org-pendencias" hidden style="margin-bottom:20px;"></div>
+      <div class="gestao-toolbar">
+        <div class="gestao-filter"><span>Filial</span><select id="org-filtro-filial"><option value="">Todas</option></select></div>
+        <div class="gestao-filter"><span>Área</span><select id="org-filtro-area"><option value="">Ir para...</option></select></div>
+      </div>
       <div id="org-tree" class="org-tree"></div>
     </div>
   </main>
@@ -1602,12 +1606,29 @@
   }
 
   var orgFocoId = null; // id de quem está "em foco" na visão principal -- null = raiz
+  var orgFiltroFilial = ''; // filial_id selecionado, '' = todas
+
+  // Áreas não são uma coluna no banco -- é só um atalho pra pular direto pro
+  // ramo daquele gestor na árvore (o "responsável" de cada área, combinado
+  // com o Bruno).
+  var ORG_AREAS = [
+    { nome: 'Vendas Governo', gestorNome: 'Abner Saldanha De Rezende' },
+    { nome: 'Vendas Varejo', gestorNome: 'Carlos Wilmar De Figueiredo' },
+    { nome: 'Vendas Key Account', gestorNome: 'Fausto Souza De Oliveira' },
+    { nome: 'Pós-Venda', gestorNome: 'Cleiton Nogueira Barbosa' },
+    { nome: 'Administrativo', gestorNome: 'Stephany Da Mata Araujo Castelo Branco' },
+    { nome: 'Estratégia de Negócio', gestorNome: 'Heloisa Cristina Matias' },
+    { nome: 'Marketing', gestorNome: 'Gisele Fatima Da Silva' }
+  ];
 
   function construirPorGestor(){
+    var lista = (orgDados.pessoas || []).filter(function(p){
+      return !orgFiltroFilial || p.filial_id === orgFiltroFilial;
+    });
     var idsVisiveis = {};
-    (orgDados.pessoas || []).forEach(function(p){ idsVisiveis[p.id] = true; });
+    lista.forEach(function(p){ idsVisiveis[p.id] = true; });
     var porGestor = {};
-    (orgDados.pessoas || []).forEach(function(p){
+    lista.forEach(function(p){
       if (!p.ativo) return;
       var temChefeVisivel = p.gestor_imediato_id && idsVisiveis[p.gestor_imediato_id];
       var chave = temChefeVisivel ? p.gestor_imediato_id : '__raiz__';
@@ -1617,14 +1638,46 @@
     return porGestor;
   }
 
+  function popularFiltrosOrganograma(){
+    var selFilial = document.getElementById('org-filtro-filial');
+    if (!selFilial.dataset.done) {
+      selFilial.dataset.done = '1';
+      sb.from('filiais').select('id, nome').order('nome').then(function(res){
+        (res.data || []).forEach(function(f){
+          var opt = document.createElement('option');
+          opt.value = f.id; opt.textContent = f.nome;
+          selFilial.appendChild(opt);
+        });
+      });
+    }
+    var selArea = document.getElementById('org-filtro-area');
+    if (!selArea.dataset.done) {
+      selArea.dataset.done = '1';
+      ORG_AREAS.forEach(function(a){
+        var gestor = (orgDados.pessoas || []).find(function(p){ return p.nome === a.gestorNome; });
+        if (!gestor) return; // gestor não visível nessa conta (visão recortada) -- não mostra a opção
+        var opt = document.createElement('option');
+        opt.value = gestor.id; opt.textContent = a.nome;
+        selArea.appendChild(opt);
+      });
+    }
+  }
+
   function carregarOrganograma(){
     orgFocoId = null;
+    orgFiltroFilial = '';
     document.getElementById('org-tree').innerHTML = '<p class="modal-note">carregando…</p>';
     chamarOrganograma({ action: 'listar' }).then(function(res){
       if (!res.ok) { toast('Erro ao carregar organograma: ' + (res.data.error || '')); return; }
       orgDados = res.data;
-      renderOrgPendencias();
-      renderOrgTree();
+      return sb.from('pessoas').select('id, filial_id').then(function(fres){
+        var filialPorId = {};
+        (fres.data || []).forEach(function(p){ filialPorId[p.id] = p.filial_id; });
+        (orgDados.pessoas || []).forEach(function(p){ p.filial_id = filialPorId[p.id] || null; });
+        popularFiltrosOrganograma();
+        renderOrgPendencias();
+        renderOrgTree();
+      });
     });
   }
 
@@ -1850,6 +1903,19 @@
   navHub.addEventListener('click', function(){ selectView('hub'); });
   navConfig.addEventListener('click', function(){ selectView('config'); });
   navOrganograma.addEventListener('click', function(){ selectView('organograma'); });
+  document.getElementById('org-filtro-filial').addEventListener('change', function(e){
+    orgFiltroFilial = e.target.value;
+    orgFocoId = null;
+    renderOrgTree();
+  });
+  document.getElementById('org-filtro-area').addEventListener('change', function(e){
+    if (!e.target.value) return;
+    orgFiltroFilial = '';
+    document.getElementById('org-filtro-filial').value = '';
+    orgFocoId = e.target.value;
+    renderOrgTree();
+    e.target.value = '';
+  });
   selectView('hub');
 
   var userBtn = document.getElementById('user-footer-btn');
