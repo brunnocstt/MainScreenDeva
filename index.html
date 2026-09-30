@@ -177,6 +177,26 @@
   .gestao-tab.is-active{ border-color:var(--accent); background:var(--accent-tint-10); color:var(--accent); }
   .gestao-tab.is-active.inativos{ border-color:#DC2626; background:#FEF2F2; color:#B91C1C; }
   .gestao-table-card{ background:var(--surface); border:1px solid var(--line-soft); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-card); }
+
+  /* ---------------- ORGANOGRAMA ---------------- */
+  .org-pendencia-card{ background:var(--accent-soft); border:1px solid var(--accent); border-radius:14px; padding:16px 18px; margin-bottom:12px; }
+  .org-pendencia-card h3{ font-size:.85rem; font-weight:800; color:var(--accent); margin:0 0 10px; }
+  .org-pendencia-item{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid rgba(25,85,255,.15); }
+  .org-pendencia-item:first-of-type{ border-top:none; }
+  .org-pendencia-texto{ font-size:.82rem; color:var(--ink-soft); }
+  .org-pendencia-texto b{ color:var(--ink); }
+  .org-pendencia-acoes{ display:flex; gap:8px; flex-shrink:0; }
+  .org-tree{ padding:8px 0 40px; }
+  .org-node{ margin-left:28px; border-left:1px dashed var(--line); padding-left:20px; position:relative; }
+  .org-node.is-root{ margin-left:0; border-left:none; padding-left:0; }
+  .org-node-card{ display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--line-soft); border-radius:12px; padding:9px 12px; margin:6px 0; box-shadow:var(--shadow-card); max-width:420px; }
+  .org-node-card .avatar{ width:30px; height:30px; font-size:.68rem; flex-shrink:0; }
+  .org-node-info{ min-width:0; flex:1; }
+  .org-node-info .nome{ font-size:.83rem; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .org-node-info .cargo{ font-size:.72rem; color:var(--muted-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .org-node-mover{ all:unset; box-sizing:border-box; width:26px; height:26px; border-radius:7px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted-2); flex-shrink:0; }
+  .org-node-mover:hover{ background:var(--surface-2); color:var(--accent); }
+  .org-children{ }
   .table-wrap{ overflow-x:auto; }
   /* width:100% + table-layout AUTO (padrão do navegador) -- igual, literal,
      ao <table style={{width:"100%",borderCollapse:"collapse"}}> da
@@ -467,6 +487,10 @@
         <span class="nav-icon"><svg width="17" height="17"><use href="#i-grid"/></svg></span>
         <span class="nav-label">Hub de apps</span>
       </button>
+      <button type="button" class="nav-btn" id="nav-organograma" title="Organograma">
+        <span class="nav-icon"><svg width="17" height="17"><use href="#i-grid"/></svg></span>
+        <span class="nav-label">Organograma</span>
+      </button>
       <button type="button" class="nav-btn" id="nav-config" title="Configurações" hidden>
         <span class="nav-icon"><svg width="17" height="17"><use href="#i-settings"/></svg></span>
         <span class="nav-label">Configurações</span>
@@ -523,7 +547,35 @@
         </div>
       </div>
     </div>
+
+    <div id="view-organograma" hidden>
+      <div class="page-head"><h1>Organograma</h1><p class="sub">Estrutura da empresa -- quem responde para quem.</p></div>
+      <div id="org-pendencias" hidden style="margin-bottom:20px;"></div>
+      <div id="org-tree" class="org-tree"></div>
+    </div>
   </main>
+</div>
+
+<!-- modal: mover pessoa no organograma (fica pendente se quem propõe não é admin) -->
+<div class="modal-overlay" id="mover-modal" hidden>
+  <div class="modal-card">
+   <div class="modal-card-scroll">
+    <div class="modal-head"><h2>Mover no organograma</h2><button type="button" class="modal-close" id="mover-modal-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <p class="modal-note" id="mover-modal-note"></p>
+    <div class="field" style="margin-bottom:14px;">
+      <label style="display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:6px;">Novo gestor imediato</label>
+      <select id="mover-gestor-select" style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--canvas);color:var(--ink);font-size:.9rem;"></select>
+    </div>
+    <div class="field" style="margin-bottom:6px;">
+      <label style="display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:6px;">Motivo (opcional)</label>
+      <textarea id="mover-motivo" rows="2" style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--canvas);color:var(--ink);font-size:.85rem;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="mover-modal-cancel">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="mover-modal-save">Confirmar</button>
+    </div>
+   </div>
+  </div>
 </div>
 
 <div class="user-popup" id="user-popup" hidden>
@@ -652,6 +704,7 @@
   });
   var HUB_FN_URL = SUPABASE_URL + '/functions/v1/hub-manage-access';
   var HUB_FORGOT_FN_URL = SUPABASE_URL + '/functions/v1/hub-forgot-password';
+  var HUB_ORG_FN_URL = SUPABASE_URL + '/functions/v1/hub-organograma';
 
   // Se veio de um app que redirecionou pra cá por falta de sessão
   // (?next=https://topdealerdeva.albusdata.com.br), guarda a URL pra
@@ -1389,23 +1442,171 @@
   document.getElementById('pessoas-search').addEventListener('input', function(e){ estadoGestao.busca = e.target.value; renderGestao(); });
   document.getElementById('pessoas-filial-filter').addEventListener('change', function(e){ estadoGestao.filial = e.target.value; renderGestao(); });
 
+  // ---------------- ORGANOGRAMA ----------------
+  var orgDados = null; // { pessoas, movimentacoes, caller }
+  var orgPessoaMovendoId = null;
+
+  function chamarOrganograma(body){
+    return sb.auth.getSession().then(function(sres){
+      var token = sres.data.session.access_token;
+      return fetch(HUB_ORG_FN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify(body)
+      }).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, data: j }; }); });
+    });
+  }
+
+  function carregarOrganograma(){
+    document.getElementById('org-tree').innerHTML = '<p class="modal-note">carregando…</p>';
+    chamarOrganograma({ action: 'listar' }).then(function(res){
+      if (!res.ok) { toast('Erro ao carregar organograma: ' + (res.data.error || '')); return; }
+      orgDados = res.data;
+      renderOrgPendencias();
+      renderOrgTree();
+    });
+  }
+
+  function pessoaOrg(id){ return (orgDados.pessoas || []).find(function(p){ return p.id === id; }) || null; }
+
+  function renderOrgPendencias(){
+    var wrap = document.getElementById('org-pendencias');
+    var minhas = (orgDados.movimentacoes || []).filter(function(m){
+      return m.status === 'pendente' && (m.gestor_novo_id === orgDados.caller.pessoa_id || orgDados.caller.edicao_direta);
+    });
+    if (!minhas.length) { wrap.hidden = true; wrap.innerHTML = ''; return; }
+    wrap.hidden = false;
+    wrap.innerHTML = '<div class="org-pendencia-card"><h3>Movimentações pendentes de aprovação (' + minhas.length + ')</h3>' +
+      minhas.map(function(m){
+        var pessoa = pessoaOrg(m.pessoa_id);
+        var atual = pessoaOrg(m.gestor_atual_id);
+        var novo = pessoaOrg(m.gestor_novo_id);
+        return '<div class="org-pendencia-item">' +
+          '<div class="org-pendencia-texto"><b>' + escapeHtml(pessoa ? pessoa.nome : '?') + '</b> -- de ' +
+            escapeHtml(atual ? atual.nome : '(sem gestor)') + ' para <b>' + escapeHtml(novo ? novo.nome : '?') + '</b>' +
+            (m.motivo ? '<br><span style="color:var(--muted-2);">' + escapeHtml(m.motivo) + '</span>' : '') + '</div>' +
+          '<div class="org-pendencia-acoes">' +
+            '<button type="button" class="btn btn-ghost" data-mov-rejeitar="' + m.id + '" style="padding:7px 14px;">Rejeitar</button>' +
+            '<button type="button" class="btn btn-primary" data-mov-aprovar="' + m.id + '" style="padding:7px 14px;">Aprovar</button>' +
+          '</div></div>';
+      }).join('') + '</div>';
+
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-mov-aprovar]'), function(btn){
+      btn.addEventListener('click', function(){ resolverMovimentacao(btn.getAttribute('data-mov-aprovar'), true); });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-mov-rejeitar]'), function(btn){
+      btn.addEventListener('click', function(){ resolverMovimentacao(btn.getAttribute('data-mov-rejeitar'), false); });
+    });
+  }
+
+  function resolverMovimentacao(id, aprovar){
+    chamarOrganograma({ action: 'resolver_movimentacao', movimentacao_id: id, aprovar: aprovar }).then(function(res){
+      if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
+      toast(aprovar ? 'Movimentação aprovada.' : 'Movimentação rejeitada.');
+      carregarOrganograma();
+    });
+  }
+
+  function renderOrgTree(){
+    var porGestor = {};
+    (orgDados.pessoas || []).forEach(function(p){
+      if (!p.ativo) return;
+      var chave = p.gestor_imediato_id || '__raiz__';
+      (porGestor[chave] = porGestor[chave] || []).push(p);
+    });
+    Object.keys(porGestor).forEach(function(k){ porGestor[k].sort(function(a,b){ return (a.nome||'').localeCompare(b.nome||'','pt-BR'); }); });
+
+    function podeMover(pessoa){
+      return orgDados.caller.edicao_direta || pessoa.gestor_imediato_id === orgDados.caller.pessoa_id;
+    }
+
+    function nodeHtml(pessoa, isRoot){
+      var filhos = porGestor[pessoa.id] || [];
+      var html = '<div class="org-node' + (isRoot ? ' is-root' : '') + '">' +
+        '<div class="org-node-card">' +
+          '<span class="avatar" style="background:' + corAvatar(pessoa.nome) + '">' + iniciais(pessoa.nome) + '</span>' +
+          '<div class="org-node-info"><div class="nome">' + escapeHtml(pessoa.nome) + '</div>' +
+            '<div class="cargo">' + escapeHtml(pessoa.cargo || '') + '</div></div>' +
+          (podeMover(pessoa) ? '<button type="button" class="org-node-mover" title="Mover pra outro gestor" data-mover-pessoa="' + pessoa.id + '"><svg width="14" height="14"><use href="#i-pencil"/></svg></button>' : '') +
+        '</div>';
+      if (filhos.length) {
+        html += '<div class="org-children">' + filhos.map(function(f){ return nodeHtml(f, false); }).join('') + '</div>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    var raizes = porGestor['__raiz__'] || [];
+    var tree = document.getElementById('org-tree');
+    if (!raizes.length) { tree.innerHTML = '<p class="modal-note">Ninguém no topo do organograma ainda (ninguém sem gestor imediato).</p>'; return; }
+    tree.innerHTML = raizes.map(function(p){ return nodeHtml(p, true); }).join('');
+
+    Array.prototype.forEach.call(tree.querySelectorAll('[data-mover-pessoa]'), function(btn){
+      btn.addEventListener('click', function(){ abrirMoverModal(btn.getAttribute('data-mover-pessoa')); });
+    });
+  }
+
+  // ---------------- MODAL: MOVER NO ORGANOGRAMA ----------------
+  var moverModal = document.getElementById('mover-modal');
+  function abrirMoverModal(pessoaId){
+    var pessoa = pessoaOrg(pessoaId);
+    if (!pessoa) return;
+    orgPessoaMovendoId = pessoaId;
+    var nota = document.getElementById('mover-modal-note');
+    nota.textContent = orgDados.caller.edicao_direta
+      ? 'Mover "' + pessoa.nome + '" pra outro gestor. Aplica na hora, sem precisar de aprovação.'
+      : 'Mover "' + pessoa.nome + '" pra outro gestor. Fica pendente até o gestor de destino aprovar.';
+    var sel = document.getElementById('mover-gestor-select');
+    sel.innerHTML = (orgDados.pessoas || [])
+      .filter(function(p){ return p.ativo && p.id !== pessoaId; })
+      .sort(function(a,b){ return (a.nome||'').localeCompare(b.nome||'','pt-BR'); })
+      .map(function(p){ return '<option value="' + p.id + '">' + escapeHtml(p.nome) + '</option>'; }).join('');
+    document.getElementById('mover-motivo').value = '';
+    moverModal.hidden = false;
+  }
+  function fecharMoverModal(){ moverModal.hidden = true; orgPessoaMovendoId = null; }
+  document.getElementById('mover-modal-close').addEventListener('click', fecharMoverModal);
+  document.getElementById('mover-modal-cancel').addEventListener('click', fecharMoverModal);
+  moverModal.addEventListener('click', function(e){ if (e.target === moverModal) fecharMoverModal(); });
+  document.getElementById('mover-modal-save').addEventListener('click', function(){
+    if (!orgPessoaMovendoId) return;
+    var gestorNovoId = document.getElementById('mover-gestor-select').value;
+    var motivo = document.getElementById('mover-motivo').value.trim();
+    var btn = document.getElementById('mover-modal-save');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    chamarOrganograma({ action: 'propor_movimentacao', pessoa_id: orgPessoaMovendoId, gestor_novo_id: gestorNovoId, motivo: motivo || null })
+      .then(function(res){
+        btn.disabled = false; btn.textContent = 'Confirmar';
+        if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
+        fecharMoverModal();
+        toast(res.data.aplicado_direto ? 'Movimentação aplicada.' : 'Movimentação proposta -- aguardando aprovação do novo gestor.');
+        carregarOrganograma();
+      });
+  });
+
   // ---------------- NAV / SIDEBAR ----------------
   var sidebar = document.getElementById('sidebar');
   document.getElementById('menu-toggle').addEventListener('click', function(){ sidebar.classList.toggle('is-expanded'); });
 
   var navHub = document.getElementById('nav-hub');
   var navConfig = document.getElementById('nav-config');
+  var navOrganograma = document.getElementById('nav-organograma');
   var viewHub = document.getElementById('view-hub');
   var viewConfig = document.getElementById('view-config');
+  var viewOrganograma = document.getElementById('view-organograma');
   function selectView(view){
     viewHub.hidden = (view !== 'hub');
     viewConfig.hidden = (view !== 'config');
+    viewOrganograma.hidden = (view !== 'organograma');
     navHub.classList.toggle('is-active', view === 'hub');
     navConfig.classList.toggle('is-active', view === 'config');
+    navOrganograma.classList.toggle('is-active', view === 'organograma');
     sidebar.classList.remove('is-expanded');
+    if (view === 'organograma') carregarOrganograma();
   }
   navHub.addEventListener('click', function(){ selectView('hub'); });
   navConfig.addEventListener('click', function(){ selectView('config'); });
+  navOrganograma.addEventListener('click', function(){ selectView('organograma'); });
   selectView('hub');
 
   var userBtn = document.getElementById('user-footer-btn');
