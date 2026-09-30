@@ -599,7 +599,7 @@
       <div id="org-pendencias" hidden style="margin-bottom:20px;"></div>
       <div class="gestao-toolbar">
         <div class="gestao-filter"><span>Filial</span><select id="org-filtro-filial"><option value="">Todas</option></select></div>
-        <div class="gestao-filter"><span>Área</span><select id="org-filtro-area"><option value="">Ir para...</option></select></div>
+        <div class="gestao-filter"><span>Área</span><select id="org-filtro-area"><option value="">Todas</option></select></div>
       </div>
       <div id="org-tree" class="org-tree"></div>
     </div>
@@ -1938,11 +1938,12 @@
     renderOrgTree();
   });
   document.getElementById('org-filtro-area').addEventListener('change', function(e){
-    // pula o foco na árvore de sempre -- não mexe no filtro de filial.
+    // pula o foco na árvore -- não mexe no filtro de filial, e o próprio
+    // select continua mostrando a área escolhida (os dois filtros ficam
+    // selecionados ao mesmo tempo, compostos, nenhum apaga o outro).
     if (!e.target.value) return;
     orgFocoId = e.target.value;
     renderOrgTree();
-    e.target.value = '';
   });
   selectView('hub');
 
