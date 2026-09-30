@@ -31,7 +31,7 @@
     --shadow-card: 0 1px 2px rgba(15,23,42,.04), 0 10px 24px -16px rgba(15,23,42,.18);
     --shadow-lift: 0 6px 14px rgba(15,23,42,.06), 0 22px 40px -18px rgba(15,23,42,.24);
     --font-body:'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    --r-btn:12px; --r-input:12px; --r-card:16px; --r-login:24px;
+    --r-btn:18px; --r-input:16px; --r-card:28px; --r-login:44px;
   }
   :root{ color-scheme: light; }
   *,*::before,*::after{ box-sizing:border-box; }
@@ -67,7 +67,7 @@
   .field input::placeholder{ color:var(--muted-2); }
   .field-pass input{ padding-right:40px; }
   .eye-toggle{ position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--muted); padding:6px; display:flex; }
-  .login-error{ background:#FEF2F2; border:1px solid #FECACA; color:#B91C1C; font-size:.8rem; font-weight:600; border-radius:10px; padding:10px 12px; margin-bottom:16px; text-align:left; }
+  .login-error{ background:#FEF2F2; border:1px solid #FECACA; color:#B91C1C; font-size:.8rem; font-weight:600; border-radius:16px; padding:10px 12px; margin-bottom:16px; text-align:left; }
   .ts-wrap{ display:flex; justify-content:center; margin-bottom:16px; }
 
   .modal-overlay{ position:fixed; inset:0; background:rgba(15,10,8,.45); z-index:300; display:flex; align-items:center; justify-content:center; padding:20px; }
@@ -76,7 +76,7 @@
      .modal-card-scroll. Sem isso, a scrollbar nativa do próprio card
      esquartejava o canto arredondado dele (mesmo problema resolvido antes
      no filiais-wrap, agora acontecendo aqui porque o card é quem rola). */
-  .modal-card{ width:100%; max-width:420px; max-height:calc(100vh - 40px); background:var(--surface); border-radius:20px; box-shadow:var(--shadow-lift); overflow:hidden; }
+  .modal-card{ width:100%; max-width:420px; max-height:calc(100vh - 40px); background:var(--surface); border-radius:32px; box-shadow:var(--shadow-lift); overflow:hidden; }
   .modal-card-scroll{ max-height:calc(100vh - 40px); overflow-y:auto; padding:24px; scrollbar-width:thin; scrollbar-color:var(--line-soft) transparent; }
   .modal-card-scroll::-webkit-scrollbar{ width:9px; }
   .modal-card-scroll::-webkit-scrollbar-track{ background:transparent; }
@@ -84,15 +84,15 @@
   .modal-card-scroll::-webkit-scrollbar-thumb:hover{ background-color:var(--muted-2); }
   .modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
   .modal-head h2{ font-size:1.1rem; font-weight:800; color:var(--ink); }
-  .modal-close{ all:unset; box-sizing:border-box; width:30px; height:30px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted); }
+  .modal-close{ all:unset; box-sizing:border-box; width:30px; height:30px; border-radius:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted); }
   .modal-close:hover{ background:var(--surface-2); color:var(--ink); }
   .modal-note{ font-size:.76rem; color:var(--muted-2); line-height:1.5; margin:4px 0 18px; }
   .modal-actions{ display:flex; justify-content:flex-end; gap:10px; }
   .modal-actions .btn{ width:auto; padding:11px 20px; }
-  .senha-box{ background:var(--surface-2); border-radius:12px; padding:16px; text-align:center; margin:8px 0 18px; }
+  .senha-box{ background:var(--surface-2); border-radius:20px; padding:16px; text-align:center; margin:8px 0 18px; }
   .senha-box .valor{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:1.15rem; font-weight:700; letter-spacing:.03em; color:var(--ink); margin:6px 0; word-break:break-all; }
 
-  .app-check-row{ display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:10px; }
+  .app-check-row{ display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:16px; }
   .app-check-row:hover{ background:var(--surface-2); }
   .app-check-row input[type=checkbox]{ width:17px; height:17px; accent-color:var(--accent); flex-shrink:0; }
   .app-check-row label{ font-size:.85rem; font-weight:600; color:var(--ink-soft); flex:1; cursor:pointer; }
@@ -102,7 +102,7 @@
   /* SEM scroll próprio aqui -- o modal-card inteiro já rola (overflow-y:auto
      lá em cima). Um scroll dentro de outro scroll é a pior UX que existe;
      a lista de filiais só cresce junto com o resto do modal. */
-  .filiais-wrap{ border:1px solid var(--line-soft); border-radius:10px; padding:2px; }
+  .filiais-wrap{ border:1px solid var(--line-soft); border-radius:18px; padding:2px; }
 
   .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:var(--r-btn); border:1px solid transparent; cursor:pointer; font-weight:700; font-size:.88rem; padding:12px 18px; transition:background .15s ease, border-color .15s ease, transform .1s ease, color .15s ease; }
   .btn:active{ transform:translateY(1px); }
@@ -114,19 +114,19 @@
   .btn-ghost:hover{ border-color:var(--muted-2); }
   .btn-outline-neutral{ background:transparent; border-color:var(--line); color:var(--muted); cursor:not-allowed; }
 
-  .toast{ position:fixed; bottom:20px; right:20px; background:var(--ink); color:#fff; padding:12px 18px; border-radius:10px; font-size:.83rem; font-weight:600; box-shadow:var(--shadow-lift); z-index:500; }
+  .toast{ position:fixed; bottom:20px; right:20px; background:var(--ink); color:#fff; padding:12px 18px; border-radius:16px; font-size:.83rem; font-weight:600; box-shadow:var(--shadow-lift); z-index:500; }
 
   .shell{ display:flex; min-height:100vh; background:var(--canvas); }
   .sidebar{ width:56px; flex-shrink:0; height:100vh; position:sticky; top:0; background:var(--sidebar-bg); display:flex; flex-direction:column; overflow:hidden; transition:width .24s cubic-bezier(.4,0,.2,1); }
   .sidebar.is-expanded{ width:240px; }
   .sidebar-head{ height:64px; border-bottom:1px solid var(--sidebar-line); display:flex; align-items:center; flex-shrink:0; }
-  .menu-toggle{ all:unset; box-sizing:border-box; width:28px; height:28px; margin-left:14px; flex-shrink:0; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#A1A1AA; transition:background .15s, color .15s; }
+  .menu-toggle{ all:unset; box-sizing:border-box; width:28px; height:28px; margin-left:14px; flex-shrink:0; border-radius:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#A1A1AA; transition:background .15s, color .15s; }
   .menu-toggle:hover{ background:var(--sidebar-hover); color:#fff; }
   .sidebar-logo{ margin-left:14px; overflow:hidden; white-space:nowrap; opacity:0; transition:opacity .18s ease; }
   .is-expanded .sidebar-logo{ opacity:1; }
   .sidebar-logo svg{ width:110px; height:auto; color:#fff; }
   .side-nav{ flex:1; padding-top:12px; padding-bottom:8px; overflow-y:auto; overflow-x:hidden; }
-  .nav-btn{ all:unset; box-sizing:border-box; width:100%; display:block; height:40px; padding-left:52px; padding-right:10px; border-radius:9px; cursor:pointer; text-align:left; position:relative; font-size:13px; font-weight:500; margin-bottom:2px; line-height:40px; white-space:nowrap; overflow:hidden; color:var(--sidebar-text); background:transparent; transition:background .15s, color .15s; }
+  .nav-btn{ all:unset; box-sizing:border-box; width:100%; display:block; height:40px; padding-left:52px; padding-right:10px; border-radius:14px; cursor:pointer; text-align:left; position:relative; font-size:13px; font-weight:500; margin-bottom:2px; line-height:40px; white-space:nowrap; overflow:hidden; color:var(--sidebar-text); background:transparent; transition:background .15s, color .15s; }
   .nav-btn:hover{ background:var(--sidebar-hover); color:var(--sidebar-text-hover); }
   .nav-btn.is-active{ background:var(--sidebar-active-tint); color:#fff; }
   .nav-bar{ position:absolute; left:0; top:50%; transform:translateY(-50%); width:3px; height:22px; border-radius:0 4px 4px 0; background:var(--accent); opacity:0; }
@@ -137,15 +137,15 @@
   .is-expanded .nav-label{ opacity:1; }
   .avatar{ border-radius:999px; background:var(--accent); color:#fff; font-weight:700; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; letter-spacing:-.02em; line-height:1; }
   .user-footer{ padding:8px; border-top:1px solid var(--sidebar-line); position:relative; flex-shrink:0; }
-  .user-footer-btn{ all:unset; box-sizing:border-box; width:100%; height:46px; position:relative; border-radius:9px; cursor:pointer; background:transparent; }
+  .user-footer-btn{ all:unset; box-sizing:border-box; width:100%; height:46px; position:relative; border-radius:14px; cursor:pointer; background:transparent; }
   .user-footer-btn.is-open{ background:var(--sidebar-hover); }
   .user-footer-avatar{ position:absolute; left:6px; top:50%; transform:translateY(-50%); }
   .user-footer-text{ position:absolute; left:44px; right:8px; top:50%; transform:translateY(-50%); min-width:0; text-align:left; opacity:0; transition:opacity .18s ease; }
   .is-expanded .user-footer-text{ opacity:1; }
   .user-footer-text .name{ font-size:12.5px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .user-footer-text .sub{ font-size:10.5px; color:var(--sidebar-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
-  .user-popup{ position:fixed; width:212px; background:var(--sidebar-popup-bg); border-radius:12px; border:1px solid var(--sidebar-popup-border); box-shadow:0 16px 40px rgba(0,0,0,.4); padding:6px; z-index:200; }
-  .user-popup button{ all:unset; box-sizing:border-box; width:100%; display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; cursor:pointer; text-align:left; color:#D4D4D8; font-size:13px; font-weight:500; }
+  .user-popup{ position:fixed; width:212px; background:var(--sidebar-popup-bg); border-radius:20px; border:1px solid var(--sidebar-popup-border); box-shadow:0 16px 40px rgba(0,0,0,.4); padding:6px; z-index:200; }
+  .user-popup button{ all:unset; box-sizing:border-box; width:100%; display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:14px; cursor:pointer; text-align:left; color:#D4D4D8; font-size:13px; font-weight:500; }
   .user-popup button:hover{ background:#27272A; }
   .user-popup button.danger:hover{ color:#FCA5A5; }
   main.content{ flex:1; min-width:0; padding:28px 40px 64px; background:var(--canvas); }
@@ -159,27 +159,27 @@
   .settings-content{ flex:1; min-width:0; }
   .gestao-title{ font-size:1.35rem; font-weight:800; color:var(--ink); margin:0 0 3px; }
   .gestao-sub{ font-size:.8rem; color:var(--muted); margin:0 0 16px; }
-  .gestao-toolbar{ display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; margin-bottom:14px; background:var(--surface); border:1px solid var(--line-soft); border-radius:14px; padding:14px 16px; }
-  .gestao-search{ flex:1; min-width:180px; display:flex; align-items:center; gap:8px; border:1.5px solid var(--line); border-radius:9px; padding:8px 12px; }
+  .gestao-toolbar{ display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; margin-bottom:14px; background:var(--surface); border:1px solid var(--line-soft); border-radius:22px; padding:14px 16px; }
+  .gestao-search{ flex:1; min-width:180px; display:flex; align-items:center; gap:8px; border:1.5px solid var(--line); border-radius:14px; padding:8px 12px; }
   .gestao-search svg{ color:var(--muted-2); flex-shrink:0; }
   .gestao-search input{ border:none; outline:none; background:transparent; font-size:.82rem; color:var(--ink-soft); width:100%; }
   .gestao-search input::placeholder{ color:var(--muted-2); }
   .gestao-filter{ display:flex; flex-direction:column; gap:4px; }
   .gestao-filter span{ font-size:.6rem; font-weight:700; color:var(--muted-2); text-transform:uppercase; letter-spacing:.06em; padding-left:3px; }
-  .gestao-filter select{ border:1.5px solid var(--line); border-radius:9px; padding:7px 10px; font-size:.78rem; font-weight:600; color:var(--ink-soft); background:var(--surface); }
+  .gestao-filter select{ border:1.5px solid var(--line); border-radius:14px; padding:7px 10px; font-size:.78rem; font-weight:600; color:var(--ink-soft); background:var(--surface); }
   /* Busca, select de filial e botão de adicionar viviam com alturas
      diferentes (cada um com seu próprio padding) -- padroniza os três na
      mesma altura pra alinhar de fato, não só pelo "bottom" do flex. */
   .gestao-search, .gestao-filter select{ height:38px; box-sizing:border-box; }
   .gestao-toolbar .btn{ height:38px; padding:0 16px; }
   .gestao-tabs{ display:flex; gap:8px; margin-bottom:14px; }
-  .gestao-tab{ all:unset; box-sizing:border-box; padding:7px 14px; border-radius:9px; cursor:pointer; font-size:.78rem; font-weight:700; border:1.5px solid var(--line); background:var(--surface); color:var(--muted); }
+  .gestao-tab{ all:unset; box-sizing:border-box; padding:7px 14px; border-radius:999px; cursor:pointer; font-size:.78rem; font-weight:700; border:1.5px solid var(--line); background:var(--surface); color:var(--muted); }
   .gestao-tab.is-active{ border-color:var(--accent); background:var(--accent-tint-10); color:var(--accent); }
   .gestao-tab.is-active.inativos{ border-color:#DC2626; background:#FEF2F2; color:#B91C1C; }
-  .gestao-table-card{ background:var(--surface); border:1px solid var(--line-soft); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-card); }
+  .gestao-table-card{ background:var(--surface); border:1px solid var(--line-soft); border-radius:24px; overflow:hidden; box-shadow:var(--shadow-card); }
 
   /* ---------------- ORGANOGRAMA ---------------- */
-  .org-pendencia-card{ background:var(--accent-soft); border:1px solid var(--accent); border-radius:14px; padding:16px 18px; margin-bottom:12px; }
+  .org-pendencia-card{ background:var(--accent-soft); border:1px solid var(--accent); border-radius:22px; padding:16px 18px; margin-bottom:12px; }
   .org-pendencia-card h3{ font-size:.85rem; font-weight:800; color:var(--accent); margin:0 0 10px; }
   .org-pendencia-item{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid rgba(25,85,255,.15); }
   .org-pendencia-item:first-of-type{ border-top:none; }
@@ -189,12 +189,12 @@
   .org-tree{ padding:8px 0 40px; }
   .org-node{ margin-left:28px; border-left:1px dashed var(--line); padding-left:20px; position:relative; }
   .org-node.is-root{ margin-left:0; border-left:none; padding-left:0; }
-  .org-node-card{ display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--line-soft); border-radius:12px; padding:9px 12px; margin:6px 0; box-shadow:var(--shadow-card); max-width:420px; }
+  .org-node-card{ display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--line-soft); border-radius:18px; padding:9px 12px; margin:6px 0; box-shadow:var(--shadow-card); max-width:420px; }
   .org-node-card .avatar{ width:30px; height:30px; font-size:.68rem; flex-shrink:0; }
   .org-node-info{ min-width:0; flex:1; }
   .org-node-info .nome{ font-size:.83rem; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .org-node-info .cargo{ font-size:.72rem; color:var(--muted-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .org-node-mover{ all:unset; box-sizing:border-box; width:26px; height:26px; border-radius:7px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted-2); flex-shrink:0; }
+  .org-node-mover{ all:unset; box-sizing:border-box; width:26px; height:26px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted-2); flex-shrink:0; }
   .org-node-mover:hover{ background:var(--surface-2); color:var(--accent); }
   .org-children{ }
   .table-wrap{ overflow-x:auto; }
@@ -215,7 +215,7 @@
   .gestao-user .email{ font-size:.71rem; color:var(--muted-2); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .gestao-cargo{ font-size:.76rem; color:var(--muted); line-height:1.35; }
   .gestao-actions{ display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
-  .gestao-actions button{ all:unset; box-sizing:border-box; width:26px; height:26px; border-radius:7px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted); flex-shrink:0; }
+  .gestao-actions button{ all:unset; box-sizing:border-box; width:26px; height:26px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted); flex-shrink:0; }
   .gestao-actions button:hover{ background:var(--surface-2); }
   .gestao-actions button.danger{ color:#DC2626; }
   .gestao-actions button.good{ color:var(--good); }
@@ -225,7 +225,7 @@
 
   .badge-bloqueado{ display:inline-flex; align-items:center; gap:4px; font-size:.65rem; font-weight:700; color:#B91C1C; background:#FEF2F2; border-radius:999px; padding:3px 9px; }
 
-  .filial-tooltip{ position:fixed; z-index:400; background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow-lift); padding:10px 12px; min-width:160px; max-width:260px; pointer-events:none; opacity:0; transform:translateY(-4px); transition:opacity .12s ease, transform .12s ease; }
+  .filial-tooltip{ position:fixed; z-index:400; background:var(--surface); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow-lift); padding:10px 12px; min-width:160px; max-width:260px; pointer-events:none; opacity:0; transform:translateY(-4px); transition:opacity .12s ease, transform .12s ease; }
   .filial-tooltip.is-visible{ opacity:1; transform:translateY(0); }
   .filial-tooltip-head{ font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted-2); margin-bottom:6px; }
   .filial-tooltip ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
@@ -233,7 +233,7 @@
   .filial-tooltip li::before{ content:''; width:5px; height:5px; border-radius:999px; background:var(--accent); flex-shrink:0; }
 
   .app-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(226px,1fr)); gap:22px; max-width:1180px; margin:0 auto; }
-  .app-card{ min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-card); display:flex; flex-direction:column; transition:box-shadow .18s ease, transform .18s ease; }
+  .app-card{ min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:26px; overflow:hidden; box-shadow:var(--shadow-card); display:flex; flex-direction:column; transition:box-shadow .18s ease, transform .18s ease; }
   .app-card:hover{ box-shadow:var(--shadow-lift); transform:translateY(-2px); }
   .app-visual{ height:144px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:var(--accent); }
   .app-visual svg{ width:50px; height:50px; color:#fff; }
@@ -364,7 +364,7 @@
       <button type="submit" class="btn btn-primary btn-block" id="login-submit">Entrar</button>
     </form>
 
-    <div class="login-note" style="margin-top:24px; padding:13px 14px; border-radius:12px; background:var(--surface-2); font-size:.8rem; color:var(--muted); line-height:1.5;">
+    <div class="login-note" style="margin-top:24px; padding:13px 14px; border-radius:18px; background:var(--surface-2); font-size:.8rem; color:var(--muted); line-height:1.5;">
       Problemas de acesso? Entre em contato com <a href="mailto:bruno.cesar@deva.com.br" style="color:var(--accent); font-weight:600; text-decoration:none;">bruno.cesar@deva.com.br</a>
     </div>
   </div>
@@ -402,7 +402,7 @@
         <div class="field">
           <label for="forgot-code">Código de verificação</label>
           <input id="forgot-code" inputmode="numeric" maxlength="6" required
-            style="width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:var(--canvas);color:var(--ink);text-align:center;font-size:1.4rem;font-weight:800;letter-spacing:8px;font-family:ui-monospace,monospace;" placeholder="000000">
+            style="width:100%;padding:11px 13px;border-radius:18px;border:1px solid var(--line);background:var(--canvas);color:var(--ink);text-align:center;font-size:1.4rem;font-weight:800;letter-spacing:8px;font-family:ui-monospace,monospace;" placeholder="000000">
         </div>
         <button type="submit" class="btn btn-primary btn-block" id="forgot-code-submit">Confirmar código</button>
       </form>
@@ -436,7 +436,7 @@
     </div>
 
     <div id="forgot-step-done" hidden style="text-align:center;">
-      <div style="width:52px;height:52px;border-radius:14px;background:var(--good-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
+      <div style="width:52px;height:52px;border-radius:20px;background:var(--good-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
         <svg width="24" height="24" color="var(--good)"><use href="#i-user-check"/></svg>
       </div>
       <h2 style="font-size:1.1rem;font-weight:800;color:var(--ink);margin:0 0 8px;">Senha redefinida!</h2>
@@ -588,10 +588,13 @@
   <div class="modal-card">
    <div class="modal-card-scroll">
     <div class="modal-head"><h2>Meu perfil</h2><button type="button" class="modal-close" id="perfil-modal-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:22px;">
-      <span class="avatar" id="perfil-avatar-preview" style="width:76px;height:76px;font-size:1.6rem;position:relative;"></span>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px;">
+      <span class="avatar" id="perfil-avatar-preview" style="width:76px;height:76px;font-size:1.6rem;position:relative;flex-shrink:0;"></span>
       <input type="file" id="perfil-foto-input" accept="image/png,image/jpeg,image/webp" hidden>
-      <button type="button" class="btn btn-ghost" id="perfil-trocar-foto" style="padding:8px 16px;">Trocar foto</button>
+      <div style="display:flex;flex-direction:column;gap:8px;flex:1;">
+        <button type="button" class="btn btn-ghost" id="perfil-trocar-foto" style="padding:8px 16px;">Enviar foto</button>
+        <button type="button" class="btn btn-ghost" id="perfil-importar-teams" style="padding:8px 16px;">Importar do Teams</button>
+      </div>
     </div>
     <div class="field" style="margin-bottom:14px;">
       <label style="display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:6px;">Nome completo</label>
@@ -857,6 +860,14 @@
 
   document.getElementById('perfil-trocar-foto').addEventListener('click', function(){
     document.getElementById('perfil-foto-input').click();
+  });
+  // TODO: falta o padrão real do link público da foto do Teams (depende de
+  // como o tenant Microsoft 365 da Deva está configurado) -- assim que o
+  // Bruno confirmar, troca esse toast por um fetch de verdade puxando
+  // https://.../<padrão>?email=estadoUsuario.email e salvando a URL (não a
+  // imagem em si) em pessoas.avatar_url via salvar_meu_avatar.
+  document.getElementById('perfil-importar-teams').addEventListener('click', function(){
+    toast('Importar do Teams ainda não está configurado -- falta confirmar o link do tenant.');
   });
   document.getElementById('perfil-foto-input').addEventListener('change', function(e){
     var file = e.target.files[0];
