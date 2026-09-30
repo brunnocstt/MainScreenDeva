@@ -202,12 +202,12 @@
   .org-chart li{ list-style:none; position:relative; padding:24px 8px 0; text-align:center; }
   .org-chart li::before, .org-chart li::after{ content:''; position:absolute; top:0; right:50%; width:50%; height:16px; border-top:1.5px solid var(--line); }
   .org-chart li::after{ right:auto; left:50%; border-left:1.5px solid var(--line); }
-  .org-chart li:only-child{ padding-top:0; }
-  .org-chart li:only-child::before, .org-chart li:only-child::after{ display:none; }
   .org-chart li:first-child::before{ border:0 none; }
   .org-chart li:last-child::after{ border:0 none; }
   .org-chart li:last-child::before{ border-right:1.5px solid var(--line); border-radius:0 8px 0 0; }
   .org-chart li:first-child::after{ border-radius:8px 0 0 0; }
+  .org-chart li:only-child{ padding-top:0; }
+  .org-chart li:only-child::before, .org-chart li:only-child::after{ display:none; border:0 none; }
   .org-chart li > ul{ padding-top:16px; }
   .org-chart li > ul::before{ content:''; position:absolute; top:0; left:50%; width:0; height:16px; border-left:1.5px solid var(--line); }
   .org-node-card{ display:inline-flex; flex-direction:column; align-items:center; gap:5px; background:var(--surface); border:1px solid var(--line-soft); border-radius:14px; padding:9px 9px 7px; box-shadow:var(--shadow-card); width:126px; position:relative; transition:box-shadow .15s, border-color .15s, transform .15s; }
