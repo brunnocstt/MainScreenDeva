@@ -595,7 +595,7 @@
         <button type="button" class="btn btn-ghost" id="perfil-trocar-foto" style="padding:8px 16px;">Enviar foto</button>
       </div>
     </div>
-    <p class="modal-note" style="margin:0 0 18px;">Dica: <a href="#" id="perfil-link-teams" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700;">abra sua foto do Teams aqui</a> (se pedir login, é normal -- faça login e a foto aparece), aí é só botão direito → salvar imagem e enviar aqui.</p>
+    <p class="modal-note" style="margin:0 0 18px;">Dica: dá pra salvar sua foto do Teams (botão direito → salvar imagem) e enviar aqui.</p>
     <div class="field" style="margin-bottom:14px;">
       <label style="display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:6px;">Nome completo</label>
       <input type="text" id="perfil-nome" disabled style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font-size:.9rem;">
@@ -852,9 +852,6 @@
     document.getElementById('perfil-nome').value = estadoUsuario.nome || '';
     document.getElementById('perfil-email').value = estadoUsuario.email || '';
     aplicarAvatar(document.getElementById('perfil-avatar-preview'), estadoUsuario.nome, estadoUsuario.avatarUrl);
-    if (estadoUsuario.email) {
-      document.getElementById('perfil-link-teams').href = 'https://sadacorp.sharepoint.com/_layouts/15/userphoto.aspx?size=L&username=' + encodeURIComponent(estadoUsuario.email);
-    }
     perfilModal.hidden = false;
   });
   function fecharPerfilModal(){ perfilModal.hidden = true; }
