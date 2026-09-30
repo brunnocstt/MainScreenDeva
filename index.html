@@ -212,6 +212,8 @@
   .org-node-mover{ all:unset; box-sizing:border-box; position:absolute; top:8px; right:8px; width:22px; height:22px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted-2); opacity:0; transition:opacity .15s, background .15s, color .15s; }
   .org-node-card:hover .org-node-mover{ opacity:1; }
   .org-node-mover:hover{ background:var(--surface-2); color:var(--accent); }
+  .org-node-toggle{ all:unset; box-sizing:border-box; position:absolute; left:50%; bottom:-11px; transform:translateX(-50%); min-width:22px; height:22px; padding:0 5px; border-radius:999px; background:var(--surface); border:1.5px solid var(--line); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:.68rem; font-weight:800; color:var(--muted); z-index:2; transition:border-color .15s, color .15s, background .15s; }
+  .org-node-toggle:hover{ border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
   .table-wrap{ overflow-x:auto; }
   /* width:100% + table-layout AUTO (padrão do navegador) -- igual, literal,
      ao <table style={{width:"100%",borderCollapse:"collapse"}}> da
@@ -1583,11 +1585,41 @@
     });
   }
 
+  var orgColapsados = {}; // pessoa.id -> true quando os filhos dela estão escondidos
+
+  function construirPorGestor(){
+    var idsVisiveis = {};
+    (orgDados.pessoas || []).forEach(function(p){ idsVisiveis[p.id] = true; });
+    var porGestor = {};
+    (orgDados.pessoas || []).forEach(function(p){
+      if (!p.ativo) return;
+      var temChefeVisivel = p.gestor_imediato_id && idsVisiveis[p.gestor_imediato_id];
+      var chave = temChefeVisivel ? p.gestor_imediato_id : '__raiz__';
+      (porGestor[chave] = porGestor[chave] || []).push(p);
+    });
+    Object.keys(porGestor).forEach(function(k){ porGestor[k].sort(function(a,b){ return (a.nome||'').localeCompare(b.nome||'','pt-BR'); }); });
+    return porGestor;
+  }
+
+  // Meio-termo entre árvore toda horizontal (fica gigante) e lista vertical
+  // (fica sem noção de estrutura): mostra raiz + primeiro nível por padrão,
+  // o resto começa recolhido -- a pessoa expande só o que quer inspecionar.
+  function inicializarColapso(porGestor){
+    orgColapsados = {};
+    function marcar(pessoa, depth){
+      var filhos = porGestor[pessoa.id] || [];
+      if (depth >= 1 && filhos.length) orgColapsados[pessoa.id] = true;
+      filhos.forEach(function(f){ marcar(f, depth + 1); });
+    }
+    (porGestor['__raiz__'] || []).forEach(function(p){ marcar(p, 0); });
+  }
+
   function carregarOrganograma(){
     document.getElementById('org-tree').innerHTML = '<p class="modal-note">carregando…</p>';
     chamarOrganograma({ action: 'listar' }).then(function(res){
       if (!res.ok) { toast('Erro ao carregar organograma: ' + (res.data.error || '')); return; }
       orgDados = res.data;
+      inicializarColapso(construirPorGestor());
       renderOrgPendencias();
       renderOrgTree();
     });
@@ -1638,17 +1670,14 @@
     // veio na lista (visão recortada pra admin_area/usuário -- o chefe dela
     // aparece como topo da fatia visível, mesmo tendo gestor próprio lá em
     // cima que ela não enxerga).
-    var idsVisiveis = {};
-    (orgDados.pessoas || []).forEach(function(p){ idsVisiveis[p.id] = true; });
+    var porGestor = construirPorGestor();
 
-    var porGestor = {};
-    (orgDados.pessoas || []).forEach(function(p){
-      if (!p.ativo) return;
-      var temChefeVisivel = p.gestor_imediato_id && idsVisiveis[p.gestor_imediato_id];
-      var chave = temChefeVisivel ? p.gestor_imediato_id : '__raiz__';
-      (porGestor[chave] = porGestor[chave] || []).push(p);
-    });
-    Object.keys(porGestor).forEach(function(k){ porGestor[k].sort(function(a,b){ return (a.nome||'').localeCompare(b.nome||'','pt-BR'); }); });
+    function contarDescendentes(pessoa){
+      var filhos = porGestor[pessoa.id] || [];
+      var total = filhos.length;
+      filhos.forEach(function(f){ total += contarDescendentes(f); });
+      return total;
+    }
 
     function podeMover(pessoa){
       return orgDados.caller.edicao_direta || pessoa.gestor_imediato_id === orgDados.caller.pessoa_id;
@@ -1666,14 +1695,17 @@
 
     function nodeHtml(pessoa){
       var filhos = porGestor[pessoa.id] || [];
+      var temFilhos = filhos.length > 0;
+      var colapsado = temFilhos && !!orgColapsados[pessoa.id];
       var html = '<li>' +
         '<div class="org-node-card">' +
           (podeMover(pessoa) ? '<button type="button" class="org-node-mover" title="Mover pra outro gestor" data-mover-pessoa="' + pessoa.id + '"><svg width="12" height="12"><use href="#i-pencil"/></svg></button>' : '') +
           '<span class="avatar" style="background:' + corAvatar(pessoa.nome) + '">' + iniciais(pessoa.nome) + '</span>' +
           '<div class="org-node-info"><div class="nome">' + escapeHtml(pessoa.nome) + '</div>' +
             '<div class="cargo">' + escapeHtml(capitalizarCargo(pessoa.cargo)) + '</div></div>' +
+          (temFilhos ? '<button type="button" class="org-node-toggle" data-toggle-pessoa="' + pessoa.id + '" title="' + (colapsado ? 'Expandir' : 'Recolher') + '">' + (colapsado ? contarDescendentes(pessoa) : '&minus;') + '</button>' : '') +
         '</div>';
-      if (filhos.length) {
+      if (temFilhos && !colapsado) {
         html += '<ul>' + filhos.map(function(f){ return nodeHtml(f); }).join('') + '</ul>';
       }
       html += '</li>';
@@ -1686,7 +1718,15 @@
     tree.innerHTML = raizes.map(function(p){ return '<ul class="org-chart">' + nodeHtml(p) + '</ul>'; }).join('');
 
     Array.prototype.forEach.call(tree.querySelectorAll('[data-mover-pessoa]'), function(btn){
-      btn.addEventListener('click', function(){ abrirMoverModal(btn.getAttribute('data-mover-pessoa')); });
+      btn.addEventListener('click', function(e){ e.stopPropagation(); abrirMoverModal(btn.getAttribute('data-mover-pessoa')); });
+    });
+    Array.prototype.forEach.call(tree.querySelectorAll('[data-toggle-pessoa]'), function(btn){
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var id = btn.getAttribute('data-toggle-pessoa');
+        orgColapsados[id] = !orgColapsados[id];
+        renderOrgTree();
+      });
     });
   }
 
