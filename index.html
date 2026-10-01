@@ -865,6 +865,17 @@
   var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { storage: criarCookieStorage(DEVA_COOKIE_DOMAIN), storageKey: DEVA_STORAGE_KEY }
   });
+
+  // [diag temporario] mostra o que existe em document.cookie assim que o
+  // script roda, antes de qualquer chamada de auth -- pra ver se o cookie
+  // sb-deva-auth sequer chega a existir no boot da página.
+  (function(){
+    var temCookie = document.cookie.indexOf('sb-deva-auth=') !== -1;
+    var tamanho = document.cookie.length;
+    setTimeout(function(){
+      toast('[diag] boot: cookie sb-deva-auth presente=' + temCookie + ' | document.cookie len=' + tamanho);
+    }, 300);
+  })();
   var HUB_FN_URL = SUPABASE_URL + '/functions/v1/hub-manage-access';
   var HUB_FORGOT_FN_URL = SUPABASE_URL + '/functions/v1/hub-forgot-password';
   var HUB_ORG_FN_URL = SUPABASE_URL + '/functions/v1/hub-organograma';
