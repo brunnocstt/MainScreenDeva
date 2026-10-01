@@ -846,9 +846,14 @@
     var secure = (location.protocol === 'https:') ? '; Secure' : '';
     var dominio = emLocalhost ? '' : ('; domain=' + domain);
     function lerCookie(nome){
-      var partes = ('; ' + document.cookie).split('; ' + nome + '=');
-      if (partes.length < 2) return null;
-      return decodeURIComponent(partes.pop().split(';').shift());
+      var cookies = document.cookie.split(';');
+      for (var i = 0; i < cookies.length; i++) {
+        var c = cookies[i].replace(/^\s+/, '');
+        if (c.indexOf(nome + '=') === 0) {
+          return decodeURIComponent(c.substring(nome.length + 1));
+        }
+      }
+      return null;
     }
     return {
       getItem: function(key){ return lerCookie(key); },
@@ -866,25 +871,6 @@
     auth: { storage: criarCookieStorage(DEVA_COOKIE_DOMAIN), storageKey: DEVA_STORAGE_KEY }
   });
 
-  // [diag temporario] mostra o que existe em document.cookie assim que o
-  // script roda, antes de qualquer chamada de auth -- pra ver se o cookie
-  // sb-deva-auth sequer chega a existir no boot da página.
-  (function(){
-    var temCookie = document.cookie.indexOf('sb-deva-auth=') !== -1;
-    var tamanho = document.cookie.length;
-    setTimeout(function(){
-      toast('[diag] boot: cookie sb-deva-auth presente=' + temCookie + ' | document.cookie len=' + tamanho);
-    }, 300);
-    setTimeout(function(){
-      var storage = criarCookieStorage(DEVA_COOKIE_DOMAIN);
-      var valor = storage.getItem('sb-deva-auth');
-      var info = valor ? ('len=' + valor.length + ' inicio=' + valor.slice(0,60)) : 'NULL';
-      toast('[diag] getItem(sb-deva-auth) -> ' + info);
-    }, 800);
-    setTimeout(function(){
-      toast('[diag] cookie cru (120 chars): ' + document.cookie.slice(0, 120));
-    }, 1300);
-  })();
   var HUB_FN_URL = SUPABASE_URL + '/functions/v1/hub-manage-access';
   var HUB_FORGOT_FN_URL = SUPABASE_URL + '/functions/v1/hub-forgot-password';
   var HUB_ORG_FN_URL = SUPABASE_URL + '/functions/v1/hub-organograma';
@@ -1015,7 +1001,6 @@
         // ninguém -- cai no catch abaixo e segue mostrando o Hub com a
         // sessão que já tinha, pra uma instabilidade passageira na function
         // não derrubar todo mundo a cada F5.
-        toast('[diag] resolver-login status=' + (res.ok ? 'ok' : 'erro') + ' autorizado=' + res.data.autorizado + ' motivo=' + res.data.motivo);
         if (res.ok && res.data.autorizado === false) {
           negarAcesso('Você não possui acesso, contate o administrador do sistema.');
           return;
@@ -1023,7 +1008,6 @@
         showApp(session);
       })
       .catch(function(err){
-        toast('[diag] resolver-login FALHOU: ' + err.message);
         console.error('hub-resolver-login: falha técnica, seguindo com a sessão existente:', err);
         showApp(session);
       });
@@ -1104,7 +1088,6 @@
   // cookie) e SIGNED_IN (login de verdade, por senha ou Microsoft) passam
   // pela verificação de acesso.
   sb.auth.onAuthStateChange(function(event, session){
-    toast('[diag] evento=' + event + ' sessao=' + (session ? 'sim' : 'nao'));
     if (!session) { showLoginScreen(); return; }
     if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
     verificarAutorizacaoELogar(session);
