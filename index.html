@@ -406,13 +406,39 @@
     <svg class="logo-mark" viewBox="0 0 183 15"><use href="#i-logo-ivecodeva"/></svg>
     <span class="badge"><svg width="13" height="13"><use href="#i-grid"/></svg> Portal de aplicativos</span>
     <h1>Bem-vindo</h1>
-    <p class="lede">O acesso é só por login com MFA. Sem acesso prévio concedido a algum aplicativo, a entrada é recusada.</p>
+    <p class="lede">Acesse com seu e-mail corporativo para ver os aplicativos liberados para o seu perfil.</p>
 
     <div id="login-error" class="login-error" hidden></div>
 
-    <button type="button" class="btn btn-primary btn-block" id="login-mfa" style="display:flex;align-items:center;justify-content:center;gap:10px;">
-      <svg width="17" height="17"><use href="#i-lock"/></svg>
-      Login com MFA
+    <form id="login-form">
+      <div class="field">
+        <label for="f-email">E-mail corporativo</label>
+        <div class="field-control">
+          <svg class="leading" width="17" height="17"><use href="#i-mail"/></svg>
+          <input id="f-email" type="email" placeholder="nome.sobrenome@deva.com.br" autocomplete="username" required>
+        </div>
+      </div>
+      <div class="field field-pass">
+        <label for="f-pass">Senha</label>
+        <div class="field-control">
+          <svg class="leading" width="17" height="17"><use href="#i-lock"/></svg>
+          <input id="f-pass" type="password" placeholder="••••••••" autocomplete="current-password" required>
+          <button type="button" class="eye-toggle" id="eye-toggle" aria-label="Mostrar senha"><svg width="17" height="17"><use href="#i-eye"/></svg></button>
+        </div>
+      </div>
+      <div class="row-end"><a class="link-accent" href="#" id="link-esqueci-senha">Esqueci minha senha</a></div>
+      <div class="ts-wrap"><div class="cf-turnstile" data-sitekey="0x4AAAAAAD7cl8ffY5GysVNZ"></div></div>
+      <button type="submit" class="btn btn-primary btn-block" id="login-submit">Entrar</button>
+    </form>
+
+    <div style="display:flex;align-items:center;gap:10px;margin:18px 0;">
+      <div style="flex:1;height:1px;background:var(--line-soft);"></div>
+      <span style="font-size:.72rem;color:var(--muted-2);font-weight:700;">OU</span>
+      <div style="flex:1;height:1px;background:var(--line-soft);"></div>
+    </div>
+    <button type="button" class="btn btn-ghost btn-block" id="login-microsoft" style="display:flex;align-items:center;justify-content:center;gap:10px;">
+      <svg width="16" height="16" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
+      Entrar com Microsoft
     </button>
 
     <div class="login-note" style="margin-top:24px; padding:13px 14px; border-radius:18px; background:var(--surface-2); font-size:.8rem; color:var(--muted); line-height:1.5;">
@@ -420,6 +446,111 @@
     </div>
   </div>
 </div>
+
+<!-- ================= ESQUECI MINHA SENHA (3 passos, código por e-mail --
+     nunca link, o filtro de segurança de e-mail corporativo "clica" em link
+     sozinho e invalida token de uso único; mesmo modelo da Ferramentaria) ================= -->
+<div id="forgot-shell" class="login-shell" hidden>
+  <div class="login-card">
+    <svg class="logo-mark" viewBox="0 0 183 15"><use href="#i-logo-ivecodeva"/></svg>
+
+    <div id="forgot-step-email">
+      <h1>Esqueci minha senha</h1>
+      <p class="lede">Informe seu e-mail cadastrado. Vamos mandar um código de verificação.</p>
+      <div id="forgot-error" class="login-error" hidden></div>
+      <form id="forgot-email-form">
+        <div class="field">
+          <label for="forgot-email">E-mail corporativo</label>
+          <div class="field-control">
+            <svg class="leading" width="17" height="17"><use href="#i-mail"/></svg>
+            <input id="forgot-email" type="email" placeholder="nome.sobrenome@deva.com.br" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="forgot-email-submit">Enviar código</button>
+      </form>
+      <button type="button" class="link-accent" id="forgot-back-1" style="background:none;border:none;cursor:pointer;width:100%;margin-top:18px;">Voltar para o login</button>
+    </div>
+
+    <div id="forgot-step-code" hidden>
+      <h1>Digite o código</h1>
+      <p class="lede">Se <strong id="forgot-email-shown"></strong> tiver uma conta, um código de 6 dígitos foi enviado. Ele expira em 10 minutos.</p>
+      <div id="forgot-code-error" class="login-error" hidden></div>
+      <form id="forgot-code-form">
+        <div class="field">
+          <label for="forgot-code">Código de verificação</label>
+          <input id="forgot-code" inputmode="numeric" maxlength="6" required
+            style="width:100%;padding:11px 13px;border-radius:18px;border:1px solid var(--line);background:var(--canvas);color:var(--ink);text-align:center;font-size:1.4rem;font-weight:800;letter-spacing:8px;font-family:ui-monospace,monospace;" placeholder="000000">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="forgot-code-submit">Confirmar código</button>
+      </form>
+      <div style="display:flex;justify-content:space-between;margin-top:18px;">
+        <button type="button" class="link-accent" id="forgot-trocar-email" style="background:none;border:none;cursor:pointer;">Trocar e-mail</button>
+        <button type="button" class="link-accent" id="forgot-reenviar">Reenviar código</button>
+      </div>
+    </div>
+
+    <div id="forgot-step-newpass" hidden>
+      <h1>Nova senha</h1>
+      <p class="lede">Código confirmado. Defina sua nova senha.</p>
+      <div id="forgot-newpass-error" class="login-error" hidden></div>
+      <form id="forgot-newpass-form">
+        <div class="field field-pass">
+          <label for="forgot-pass">Nova senha</label>
+          <div class="field-control">
+            <svg class="leading" width="17" height="17"><use href="#i-lock"/></svg>
+            <input id="forgot-pass" type="password" placeholder="Mínimo 8 caracteres" required>
+          </div>
+        </div>
+        <div class="field field-pass">
+          <label for="forgot-pass-confirm">Confirmar nova senha</label>
+          <div class="field-control">
+            <svg class="leading" width="17" height="17"><use href="#i-lock"/></svg>
+            <input id="forgot-pass-confirm" type="password" placeholder="Repita a senha" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="forgot-newpass-submit">Salvar nova senha</button>
+      </form>
+    </div>
+
+    <div id="forgot-step-done" hidden style="text-align:center;">
+      <div style="width:52px;height:52px;border-radius:20px;background:var(--good-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
+        <svg width="24" height="24" color="var(--good)"><use href="#i-user-check"/></svg>
+      </div>
+      <h2 style="font-size:1.1rem;font-weight:800;color:var(--ink);margin:0 0 8px;">Senha redefinida!</h2>
+      <p class="lede" style="margin-bottom:24px;">Já pode acessar o sistema com sua nova senha.</p>
+      <button type="button" class="btn btn-primary btn-block" id="forgot-done-voltar">Ir para o login</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= TROCA DE SENHA OBRIGATÓRIA (login com senha temporária) ================= -->
+<div id="mustchange-shell" class="login-shell" hidden>
+  <div class="login-card">
+    <svg class="logo-mark" viewBox="0 0 183 15"><use href="#i-logo-ivecodeva"/></svg>
+    <span class="badge"><svg width="13" height="13"><use href="#i-lock"/></svg> Primeiro acesso</span>
+    <h1>Defina sua senha</h1>
+    <p class="lede">Você entrou com uma senha temporária. Escolha uma senha definitiva para continuar.</p>
+    <div id="mustchange-error" class="login-error" hidden></div>
+    <form id="mustchange-form">
+      <div class="field field-pass">
+        <label for="mustchange-pass">Nova senha</label>
+        <div class="field-control">
+          <svg class="leading" width="17" height="17"><use href="#i-lock"/></svg>
+          <input id="mustchange-pass" type="password" placeholder="Mínimo 8 caracteres" required>
+        </div>
+      </div>
+      <div class="field field-pass">
+        <label for="mustchange-pass-confirm">Confirmar nova senha</label>
+        <div class="field-control">
+          <svg class="leading" width="17" height="17"><use href="#i-lock"/></svg>
+          <input id="mustchange-pass-confirm" type="password" placeholder="Repita a senha" required>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="mustchange-submit">Definir senha</button>
+    </form>
+  </div>
+</div>
+
 <!-- ================= APP SHELL ================= -->
 <div id="app-shell" class="shell" hidden>
   <aside class="sidebar" id="sidebar">
@@ -735,6 +866,7 @@
     auth: { storage: criarCookieStorage(DEVA_COOKIE_DOMAIN), storageKey: DEVA_STORAGE_KEY }
   });
   var HUB_FN_URL = SUPABASE_URL + '/functions/v1/hub-manage-access';
+  var HUB_FORGOT_FN_URL = SUPABASE_URL + '/functions/v1/hub-forgot-password';
   var HUB_ORG_FN_URL = SUPABASE_URL + '/functions/v1/hub-organograma';
 
   // Se veio de um app que redirecionou pra cá por falta de sessão
@@ -805,63 +937,58 @@
   }
 
   // ---------------- LOGIN ----------------
-  // Login é só via MFA (Azure/Entra, app "Albusdata - Login Deva") -- sem
-  // e-mail/senha. Depois do OAuth voltar, a hub-resolver-login confere se a
-  // pessoa já tem acesso concedido a algum app (por e-mail); se não tiver,
-  // o login é negado ali mesmo, sem nunca chegar a mostrar o Hub.
-  var HUB_RESOLVER_LOGIN_FN_URL = SUPABASE_URL + '/functions/v1/hub-resolver-login';
-
   var bootShell = document.getElementById('boot-shell');
   var loginShell = document.getElementById('login-shell');
+  var forgotShell = document.getElementById('forgot-shell');
+  var mustchangeShell = document.getElementById('mustchange-shell');
   var appShell = document.getElementById('app-shell');
   var loginError = document.getElementById('login-error');
+  var loginSubmit = document.getElementById('login-submit');
 
   function esconderTodasAsTelas(){
     bootShell.hidden = true;
     loginShell.hidden = true;
+    forgotShell.hidden = true;
+    mustchangeShell.hidden = true;
     appShell.hidden = true;
   }
 
-  document.getElementById('login-mfa').addEventListener('click', function(){
+  document.getElementById('eye-toggle').addEventListener('click', function(){
+    var f = document.getElementById('f-pass');
+    var isPass = f.type === 'password';
+    f.type = isPass ? 'text' : 'password';
+  });
+
+  document.getElementById('login-microsoft').addEventListener('click', function(){
     loginError.hidden = true;
     sb.auth.signInWithOAuth({
       provider: 'azure',
       options: { redirectTo: window.location.href, scopes: 'openid profile email' }
     }).then(function(res){
       if (res.error) {
-        loginError.textContent = 'Não deu pra iniciar o login. Tenta de novo.';
+        loginError.textContent = 'Não deu pra iniciar o login com Microsoft. Tenta de novo.';
         loginError.hidden = false;
       }
     });
   });
 
-  function verificarAutorizacaoELogar(session){
-    esconderTodasAsTelas();
-    bootShell.hidden = false;
-    function negarAcesso(msg){
-      sb.auth.signOut().then(function(){
-        esconderTodasAsTelas();
-        loginShell.hidden = false;
-        loginError.textContent = msg;
+  document.getElementById('login-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    loginError.hidden = true;
+    loginSubmit.disabled = true;
+    loginSubmit.textContent = 'Entrando…';
+    var email = document.getElementById('f-email').value.trim();
+    var password = document.getElementById('f-pass').value;
+    sb.auth.signInWithPassword({ email: email, password: password }).then(function(res){
+      loginSubmit.disabled = false;
+      loginSubmit.textContent = 'Entrar';
+      if (res.error) {
+        loginError.textContent = 'E-mail ou senha incorretos.';
         loginError.hidden = false;
-      });
-    }
-    fetch(HUB_RESOLVER_LOGIN_FN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-      body: '{}'
-    }).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, data: j }; }); })
-      .then(function(res){
-        if (!res.ok || !res.data.autorizado) {
-          negarAcesso('Você não possui acesso, contate o administrador do sistema.');
-          return;
-        }
-        showApp(session);
-      })
-      .catch(function(){
-        negarAcesso('Não foi possível verificar seu acesso agora. Tenta de novo.');
-      });
-  }
+      }
+      // sucesso: onAuthStateChange cuida da troca de tela
+    });
+  });
 
   document.getElementById('popup-logout').addEventListener('click', function(){
     sb.auth.signOut();
@@ -914,7 +1041,7 @@
   });
 
   sb.auth.onAuthStateChange(function(event, session){
-    if (session) { verificarAutorizacaoELogar(session); } else { showLoginScreen(); }
+    if (session) { showApp(session); } else { showLoginScreen(); }
   });
 
   function showLoginScreen(){
@@ -922,16 +1049,130 @@
     loginShell.hidden = false;
   }
 
+  // ---------------- ESQUECI MINHA SENHA (código de 6 dígitos, autoatendimento) ----------------
+  document.getElementById('link-esqueci-senha').addEventListener('click', function(e){
+    e.preventDefault();
+    esconderTodasAsTelas();
+    forgotShell.hidden = false;
+    mostrarPassoForgot('email');
+  });
+
+  var forgotEmailAtual = '';
+  var forgotCodigoAtual = '';
+
+  function mostrarPassoForgot(passo){
+    ['email','code','newpass','done'].forEach(function(p){
+      document.getElementById('forgot-step-' + p).hidden = (p !== passo);
+    });
+  }
+  function chamarForgot(body){
+    return fetch(HUB_FORGOT_FN_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    }).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, data: j }; }); });
+  }
+
+  document.getElementById('forgot-back-1').addEventListener('click', showLoginScreen);
+  document.getElementById('forgot-done-voltar').addEventListener('click', showLoginScreen);
+  document.getElementById('forgot-trocar-email').addEventListener('click', function(){ mostrarPassoForgot('email'); });
+
+  document.getElementById('forgot-email-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    forgotEmailAtual = document.getElementById('forgot-email').value.trim();
+    var btn = document.getElementById('forgot-email-submit');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    chamarForgot({ action: 'request_code', email: forgotEmailAtual }).then(function(){
+      btn.disabled = false; btn.textContent = 'Enviar código';
+      document.getElementById('forgot-email-shown').textContent = forgotEmailAtual;
+      mostrarPassoForgot('code');
+    });
+  });
+
+  document.getElementById('forgot-reenviar').addEventListener('click', function(){
+    chamarForgot({ action: 'request_code', email: forgotEmailAtual }).then(function(){ toast('Código reenviado.'); });
+  });
+
+  document.getElementById('forgot-code-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var errEl = document.getElementById('forgot-code-error');
+    errEl.hidden = true;
+    var codigo = document.getElementById('forgot-code').value.trim();
+    if (codigo.length !== 6) { errEl.textContent = 'Digite os 6 dígitos do código.'; errEl.hidden = false; return; }
+    var btn = document.getElementById('forgot-code-submit');
+    btn.disabled = true; btn.textContent = 'Verificando…';
+    chamarForgot({ action: 'verify_code', email: forgotEmailAtual, code: codigo }).then(function(res){
+      btn.disabled = false; btn.textContent = 'Confirmar código';
+      if (!res.ok) { errEl.textContent = res.data.error || 'Código inválido ou expirado.'; errEl.hidden = false; return; }
+      forgotCodigoAtual = codigo;
+      mostrarPassoForgot('newpass');
+    });
+  });
+
+  document.getElementById('forgot-newpass-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var errEl = document.getElementById('forgot-newpass-error');
+    errEl.hidden = true;
+    var p1 = document.getElementById('forgot-pass').value;
+    var p2 = document.getElementById('forgot-pass-confirm').value;
+    if (p1.length < 8) { errEl.textContent = 'A senha deve ter pelo menos 8 caracteres.'; errEl.hidden = false; return; }
+    if (p1 !== p2) { errEl.textContent = 'As senhas não coincidem.'; errEl.hidden = false; return; }
+    var btn = document.getElementById('forgot-newpass-submit');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    chamarForgot({ action: 'set_new_password', email: forgotEmailAtual, code: forgotCodigoAtual, newPassword: p1 }).then(function(res){
+      btn.disabled = false; btn.textContent = 'Salvar nova senha';
+      if (!res.ok) { errEl.textContent = res.data.error || 'Não foi possível redefinir. Peça um novo código.'; errEl.hidden = false; return; }
+      document.getElementById('forgot-pass').value = '';
+      document.getElementById('forgot-pass-confirm').value = '';
+      mostrarPassoForgot('done');
+    });
+  });
+
+  // ---------------- TROCA DE SENHA OBRIGATÓRIA (login com senha temporária) ----------------
+  var sessaoPendenteMustChange = null;
+  document.getElementById('mustchange-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var errEl = document.getElementById('mustchange-error');
+    errEl.hidden = true;
+    var p1 = document.getElementById('mustchange-pass').value;
+    var p2 = document.getElementById('mustchange-pass-confirm').value;
+    if (p1.length < 8) { errEl.textContent = 'A senha deve ter pelo menos 8 caracteres.'; errEl.hidden = false; return; }
+    if (p1 !== p2) { errEl.textContent = 'As senhas não coincidem.'; errEl.hidden = false; return; }
+    var btn = document.getElementById('mustchange-submit');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    sb.auth.updateUser({ password: p1 }).then(function(res){
+      if (res.error) {
+        btn.disabled = false; btn.textContent = 'Definir senha';
+        errEl.textContent = res.error.message || 'Erro ao salvar a senha.'; errEl.hidden = false;
+        return;
+      }
+      sb.from('contas').update({ must_change_password: false }).eq('id', sessaoPendenteMustChange.user.id).then(function(){
+        document.getElementById('mustchange-pass').value = '';
+        document.getElementById('mustchange-pass-confirm').value = '';
+        btn.disabled = false; btn.textContent = 'Definir senha';
+        showApp(sessaoPendenteMustChange);
+      });
+    });
+  });
+
   var estadoUsuario = null; // { uid, nome, email, filialNome, hubAdmin }
 
   function showApp(session){
     var uid = session.user.id;
 
     sb.from('contas')
-      .select('hub_admin, papel_hub, pessoas(id, nome, email, avatar_url, filiais(nome))')
+      .select('hub_admin, papel_hub, must_change_password, pessoas(id, nome, email, avatar_url, filiais(nome))')
       .eq('id', uid)
       .maybeSingle()
       .then(function(res){
+        // Senha temporária ainda não trocada -- trava aqui, nem o resto do
+        // Hub nem o redirect pra outro app acontecem antes disso (mesmo
+        // comportamento do TrocaSenhaObrigatoriaScreen da Ferramentaria).
+        if (res.data && res.data.must_change_password) {
+          sessaoPendenteMustChange = session;
+          esconderTodasAsTelas();
+          mustchangeShell.hidden = false;
+          return;
+        }
+
         // Já tem sessão válida e a pessoa veio de outro app -- manda de
         // volta pra lá direto, sem nem mostrar o Hub. O app de destino vai
         // enxergar essa mesma sessão pelo cookie compartilhado.
