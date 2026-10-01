@@ -750,6 +750,19 @@
         <div class="modal-section-label" id="app-acesso-filiais-label">Acesso extra de filial</div>
         <div id="app-acesso-filiais" class="filiais-wrap" style="display:flex;flex-direction:column;gap:2px;margin-bottom:4px;"></div>
       </div>
+
+      <div id="app-acesso-pm-wrap" hidden>
+        <div class="field" style="margin-bottom:14px;">
+          <label style="display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:6px;">Papel funcional</label>
+          <select id="app-acesso-pm-functional-role" style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font-size:.9rem;"></select>
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label style="display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:6px;">Equipe</label>
+          <select id="app-acesso-pm-team" style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font-size:.9rem;"></select>
+        </div>
+        <div class="modal-section-label">Áreas de negócio</div>
+        <div id="app-acesso-pm-areas" class="filiais-wrap" style="display:flex;flex-direction:column;gap:2px;margin-bottom:4px;"></div>
+      </div>
     </div>
 
     <div class="modal-actions" style="margin-top:18px;">
@@ -880,7 +893,7 @@
     { id:'ferramentaria', icon:'i-wrench', name:'Ferramentaria Deva', level:'Oficina',
       url:'https://ferramentariadeva.albusdata.com.br', schema:null },
     { id:'pm', icon:'i-kanban', name:'Gestão de Demandas', level:'Coordenação',
-      url:'https://gestaoprojetosdeva.albusdata.com.br', schema:null, generico:true },
+      url:'https://gestaoprojetosdeva.albusdata.com.br', schema:'pm', table:'perfis', activeCol:'is_active' },
     { id:'padroes', icon:'i-clipboard', name:'Auditorias de Padrões', level:'Gerência',
       url:'https://padroesdeva.albusdata.com.br', schema:null }
   ];
@@ -1226,10 +1239,11 @@
         return;
       }
       if (!app.schema) { updateAppCard(idx, app, 'soon'); return; }
-      sb.schema(app.schema).from(app.table).select('ativo').eq('id', uid).maybeSingle().then(function(res){
+      var colAtivo = app.activeCol || 'ativo';
+      sb.schema(app.schema).from(app.table).select(colAtivo).eq('id', uid).maybeSingle().then(function(res){
         if (res.error) { updateAppCard(idx, app, 'soon'); return; }
         if (!res.data) { updateAppCard(idx, app, 'locked'); return; }
-        updateAppCard(idx, app, res.data.ativo === false ? 'locked' : 'active');
+        updateAppCard(idx, app, res.data[colAtivo] === false ? 'locked' : 'active');
       });
     });
   }
@@ -1472,12 +1486,25 @@
       { value: 'administrador', label: 'Administrador Geral' }
     ],
     pm: [
-      { value: 'visualizador', label: 'Visualizador' },
-      { value: 'editor', label: 'Editor' },
-      { value: 'admin_area', label: 'Admin de área' },
-      { value: 'admin_geral', label: 'Admin geral' }
+      { value: 'usuario', label: 'Usuário' },
+      { value: 'admin_area', label: 'Administrador de Área' },
+      { value: 'admin_geral', label: 'Administrador Geral' }
     ]
   };
+  // Papel funcional e equipe do PM -- não são "nível de acesso", mas também
+  // são geridos só pelo Hub (nada de tela de usuários dentro do app).
+  var PM_FUNCTIONAL_ROLES = [
+    { value: '', label: 'Nenhum' },
+    { value: 'gestor', label: 'Gestor' },
+    { value: 'desenvolvedor', label: 'Desenvolvedor' },
+    { value: 'analista', label: 'Analista' }
+  ];
+  var PM_TEAMS = [
+    { value: '', label: 'Nenhuma' },
+    { value: 'bi', label: 'BI' },
+    { value: 'marketing', label: 'Marketing' },
+    { value: 'diretoria', label: 'Diretoria' }
+  ];
   function labelNivel(appId, valor){
     var n = (APP_NIVEIS[appId] || []).find(function(x){ return x.value === valor; });
     return n ? n.label : (valor || 'Com acesso');
@@ -1489,19 +1516,21 @@
   // servidor deixa a opção visível pra quem não devia nem ver ela.
   var PAPEL_HUB_LABELS = { '': 'Usuário', admin_area: 'Administrador de Área', admin_geral: 'Administrador Geral', co_proprietario: 'Co-Proprietário', proprietario: 'Proprietário' };
   function labelPapelHub(valor){ return PAPEL_HUB_LABELS[valor || ''] || valor; }
-  // Mesma ideia, mas pro nível DENTRO de cada app (hoje só o TopDealer tem
+  // Mesma ideia, mas pro nível DENTRO de cada app (TopDealer e PM têm
   // hierarquia própria de quem-concede-o-quê; os demais ainda não têm essa
   // regra definida, então oferecem todos os níveis normalmente).
   function opcoesNivelAppPara(appId, callerNivelNoApp, callerPapelHub){
     var todas = APP_NIVEIS[appId] || [];
-    if (appId !== 'topdealer') return todas;
-    if (callerNivelNoApp === 'administrador') return todas;
-    if (callerNivelNoApp === 'admin_local') return todas.filter(function(n){ return n.value === 'usuario' || n.value === 'admin_local'; });
+    if (appId !== 'topdealer' && appId !== 'pm') return todas;
+    var nivelAmplo = appId === 'topdealer' ? 'administrador' : 'admin_geral';
+    var nivelLocal = appId === 'topdealer' ? 'admin_local' : 'admin_area';
+    if (callerNivelNoApp === nivelAmplo) return todas;
+    if (callerNivelNoApp === nivelLocal) return todas.filter(function(n){ return n.value === 'usuario' || n.value === nivelLocal; });
     if (!callerNivelNoApp) {
       if (callerPapelHub === 'proprietario' || callerPapelHub === 'co_proprietario') return todas;
       return [];
     }
-    return []; // 'usuario' dentro do TopDealer: não concede nada
+    return []; // 'usuario' dentro do app: não concede nada
   }
 
   function opcoesPapelHubPara(papelLogado){
@@ -1757,6 +1786,25 @@
       wrapFiliaisBlock.hidden = true;
     }
 
+    var wrapPmBlock = document.getElementById('app-acesso-pm-wrap');
+    if (appId === 'pm') {
+      wrapPmBlock.hidden = false;
+      var selFuncao = document.getElementById('app-acesso-pm-functional-role');
+      selFuncao.innerHTML = PM_FUNCTIONAL_ROLES.map(function(o){ return '<option value="' + o.value + '">' + escapeHtml(o.label) + '</option>'; }).join('');
+      selFuncao.value = (acesso && acesso.functional_role) || '';
+      var selTeam = document.getElementById('app-acesso-pm-team');
+      selTeam.innerHTML = PM_TEAMS.map(function(o){ return '<option value="' + o.value + '">' + escapeHtml(o.label) + '</option>'; }).join('');
+      selTeam.value = (acesso && acesso.team) || '';
+      var areasAtuais = new Set((acesso && acesso.business_area) || []);
+      var todasAreas = gestaoDados.pm_business_areas || [];
+      document.getElementById('app-acesso-pm-areas').innerHTML = todasAreas.map(function(a){
+        return '<div class="app-check-row"><input type="checkbox" id="chk-pmba-' + a.id + '" data-area-id="' + a.id + '"' +
+          (areasAtuais.has(a.id) ? ' checked' : '') + '><label for="chk-pmba-' + a.id + '">' + escapeHtml(a.label) + '</label></div>';
+      }).join('') || '<p class="modal-note" style="margin:0;">Nenhuma área de negócio cadastrada.</p>';
+    } else {
+      wrapPmBlock.hidden = true;
+    }
+
     document.getElementById('app-acesso-detalhes').hidden = !flag.checked;
     appAcessoModal.hidden = false;
   }
@@ -1807,6 +1855,15 @@
         extras.push(chk.getAttribute('data-filial-id'));
       });
       body.filial_extra_ids = extras;
+    }
+    if (appId === 'pm') {
+      body.functional_role = document.getElementById('app-acesso-pm-functional-role').value || null;
+      body.team = document.getElementById('app-acesso-pm-team').value || null;
+      var areas = [];
+      Array.prototype.forEach.call(document.querySelectorAll('#app-acesso-pm-areas input[type=checkbox]:checked'), function(chk){
+        areas.push(chk.getAttribute('data-area-id'));
+      });
+      body.business_area = areas;
     }
     chamarHub(body).then(finalizar);
   });
