@@ -834,42 +834,15 @@
   var SUPABASE_URL = 'https://iueakatarwkvaoomhhah.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_MpmQzxPjbmNIL2X8SE7uHg_LzydC1Gf';
 
-  // Sessão guardada em cookie com domain=.albusdata.com.br em vez do
-  // localStorage padrão -- assim o login feito aqui no Hub também é
-  // enxergado pelos apps em outros subdomínios (topdealerdeva.*, etc.),
-  // sem precisar passar token nenhum na URL. Mesmo storageKey precisa ser
-  // usado em TODOS os apps pra ler o mesmo cookie.
-  var DEVA_COOKIE_DOMAIN = '.albusdata.com.br';
-  var DEVA_STORAGE_KEY = 'sb-deva-auth';
-  function criarCookieStorage(domain){
-    var emLocalhost = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
-    var secure = (location.protocol === 'https:') ? '; Secure' : '';
-    var dominio = emLocalhost ? '' : ('; domain=' + domain);
-    function lerCookie(nome){
-      var cookies = document.cookie.split(';');
-      for (var i = 0; i < cookies.length; i++) {
-        var c = cookies[i].replace(/^\s+/, '');
-        if (c.indexOf(nome + '=') === 0) {
-          return decodeURIComponent(c.substring(nome.length + 1));
-        }
-      }
-      return null;
-    }
-    return {
-      getItem: function(key){ return lerCookie(key); },
-      setItem: function(key, value){
-        document.cookie = key + '=' + encodeURIComponent(value) + dominio +
-          '; path=/; max-age=' + (60*60*24*30) + '; SameSite=Lax' + secure;
-      },
-      removeItem: function(key){
-        document.cookie = key + '=' + dominio + '; path=/; max-age=0; SameSite=Lax' + secure;
-      }
-    };
-  }
-
-  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { storage: criarCookieStorage(DEVA_COOKIE_DOMAIN), storageKey: DEVA_STORAGE_KEY }
-  });
+  // Sessão no localStorage padrão do navegador (comportamento default do
+  // SDK). Uma implementação anterior guardava a sessão num cookie
+  // customizado com domain=.albusdata.com.br pra tentar compartilhar login
+  // entre subdomínios -- causava deslogamento a cada F5 (a leitura do
+  // cookie falhava de forma intermitente, por um motivo não totalmente
+  // isolado) e foi removida. Login agora é por domínio, como sempre foi
+  // nos outros apps (TopDealer, Ferramentaria) -- sem SSO automático entre
+  // eles por enquanto.
+  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   var HUB_FN_URL = SUPABASE_URL + '/functions/v1/hub-manage-access';
   var HUB_FORGOT_FN_URL = SUPABASE_URL + '/functions/v1/hub-forgot-password';
