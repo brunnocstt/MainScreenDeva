@@ -557,10 +557,6 @@
         <span class="nav-icon"><svg width="17" height="17"><use href="#i-grid"/></svg></span>
         <span class="nav-label">Hub de apps</span>
       </button>
-      <button type="button" class="nav-btn" id="nav-organograma" title="Organograma">
-        <span class="nav-icon"><svg width="17" height="17"><use href="#i-grid"/></svg></span>
-        <span class="nav-label">Organograma</span>
-      </button>
       <button type="button" class="nav-btn" id="nav-config" title="Configurações" hidden>
         <span class="nav-icon"><svg width="17" height="17"><use href="#i-settings"/></svg></span>
         <span class="nav-label">Configurações</span>
@@ -591,41 +587,48 @@
         <div class="settings-content">
           <h1 class="gestao-title">Gestão de Usuários</h1>
           <p class="gestao-sub" id="gestao-sub">carregando…</p>
-          <div class="gestao-toolbar">
-            <div class="gestao-filter" style="flex:1;min-width:180px;">
-              <span>Buscar</span>
-              <div class="gestao-search"><svg width="14" height="14"><use href="#i-search"/></svg>
-                <input type="search" id="pessoas-search" placeholder="Buscar por nome ou e-mail...">
+
+          <div class="gestao-tabs">
+            <button type="button" class="gestao-tab is-active" id="gestao-subview-lista">Lista</button>
+            <button type="button" class="gestao-tab" id="gestao-subview-organograma">Organograma</button>
+          </div>
+
+          <div id="gestao-view-lista">
+            <div class="gestao-toolbar">
+              <div class="gestao-filter" style="flex:1;min-width:180px;">
+                <span>Buscar</span>
+                <div class="gestao-search"><svg width="14" height="14"><use href="#i-search"/></svg>
+                  <input type="search" id="pessoas-search" placeholder="Buscar por nome ou e-mail...">
+                </div>
+              </div>
+              <div class="gestao-filter"><span>Filial</span><select id="pessoas-filial-filter"><option value="">Todas</option></select></div>
+              <div class="gestao-filter" style="margin-left:auto;">
+                <span>&nbsp;</span>
+                <button type="button" class="btn btn-primary" id="btn-add-pessoa">+ Adicionar Pessoa</button>
               </div>
             </div>
-            <div class="gestao-filter"><span>Filial</span><select id="pessoas-filial-filter"><option value="">Todas</option></select></div>
-            <div class="gestao-filter" style="margin-left:auto;">
-              <span>&nbsp;</span>
-              <button type="button" class="btn btn-primary" id="btn-add-pessoa">+ Adicionar Pessoa</button>
+            <div class="gestao-tabs" id="gestao-tabs"></div>
+            <div class="gestao-table-card">
+              <div class="table-wrap">
+                <table class="pessoas">
+                  <thead><tr><th>Usuário</th><th>Filial</th><th>Status</th><th>Acesso a apps</th><th>Ações</th></tr></thead>
+                  <tbody id="pessoas-tbody"></tbody>
+                </table>
+              </div>
+              <div class="gestao-table-foot" id="pessoas-foot"></div>
             </div>
           </div>
-          <div class="gestao-tabs" id="gestao-tabs"></div>
-          <div class="gestao-table-card">
-            <div class="table-wrap">
-              <table class="pessoas">
-                <thead><tr><th>Usuário</th><th>Filial</th><th>Status</th><th>Acesso a apps</th><th>Ações</th></tr></thead>
-                <tbody id="pessoas-tbody"></tbody>
-              </table>
+
+          <div id="gestao-view-organograma" hidden>
+            <div id="org-pendencias" hidden style="margin-bottom:20px;"></div>
+            <div class="gestao-toolbar">
+              <div class="gestao-filter"><span>Filial</span><select id="org-filtro-filial"><option value="">Todas</option></select></div>
+              <div class="gestao-filter"><span>Área</span><select id="org-filtro-area"><option value="">Todas</option></select></div>
             </div>
-            <div class="gestao-table-foot" id="pessoas-foot"></div>
+            <div id="org-tree" class="org-tree"></div>
           </div>
         </div>
       </div>
-    </div>
-
-    <div id="view-organograma" hidden>
-      <div class="page-head"><h1>Organograma</h1><p class="sub">Estrutura da empresa -- quem responde para quem.</p></div>
-      <div id="org-pendencias" hidden style="margin-bottom:20px;"></div>
-      <div class="gestao-toolbar">
-        <div class="gestao-filter"><span>Filial</span><select id="org-filtro-filial"><option value="">Todas</option></select></div>
-        <div class="gestao-filter"><span>Área</span><select id="org-filtro-area"><option value="">Todas</option></select></div>
-      </div>
-      <div id="org-tree" class="org-tree"></div>
     </div>
   </main>
 </div>
@@ -1955,23 +1958,35 @@
 
   var navHub = document.getElementById('nav-hub');
   var navConfig = document.getElementById('nav-config');
-  var navOrganograma = document.getElementById('nav-organograma');
   var viewHub = document.getElementById('view-hub');
   var viewConfig = document.getElementById('view-config');
-  var viewOrganograma = document.getElementById('view-organograma');
   function selectView(view){
     viewHub.hidden = (view !== 'hub');
     viewConfig.hidden = (view !== 'config');
-    viewOrganograma.hidden = (view !== 'organograma');
     navHub.classList.toggle('is-active', view === 'hub');
     navConfig.classList.toggle('is-active', view === 'config');
-    navOrganograma.classList.toggle('is-active', view === 'organograma');
     sidebar.classList.remove('is-expanded');
-    if (view === 'organograma') carregarOrganograma();
   }
   navHub.addEventListener('click', function(){ selectView('hub'); });
   navConfig.addEventListener('click', function(){ selectView('config'); });
-  navOrganograma.addEventListener('click', function(){ selectView('organograma'); });
+
+  // O organograma agora é uma sub-aba de dentro da Gestão de Usuários (não é
+  // mais uma visão separada no menu lateral) -- mesmo padrão de abas que já
+  // existia pra Ativos/Bloqueados, só que um nível acima.
+  var gestaoSubviewOrganogramaCarregado = false;
+  function selectGestaoSubview(sub){
+    document.getElementById('gestao-view-lista').hidden = (sub !== 'lista');
+    document.getElementById('gestao-view-organograma').hidden = (sub !== 'organograma');
+    document.getElementById('gestao-subview-lista').classList.toggle('is-active', sub === 'lista');
+    document.getElementById('gestao-subview-organograma').classList.toggle('is-active', sub === 'organograma');
+    if (sub === 'organograma' && !gestaoSubviewOrganogramaCarregado) {
+      gestaoSubviewOrganogramaCarregado = true;
+      carregarOrganograma();
+    }
+  }
+  document.getElementById('gestao-subview-lista').addEventListener('click', function(){ selectGestaoSubview('lista'); });
+  document.getElementById('gestao-subview-organograma').addEventListener('click', function(){ selectGestaoSubview('organograma'); });
+
   document.getElementById('org-filtro-filial').addEventListener('change', function(e){
     // só re-renderiza no lugar (esmaece/destaca) -- não mexe no foco nem
     // no filtro de área, pra não perder onde a pessoa estava navegando.
