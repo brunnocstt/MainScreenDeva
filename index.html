@@ -228,7 +228,11 @@
      tentar desenhar uma linha pra cada card (fica parecendo quebrado numa
      grade larga), só uma linha central descendo do card pro bloco inteiro
      -- a proximidade espacial já deixa claro que são todos filhos dele. */
-  .org-chart ul.org-chart-grid{ display:flex; flex-wrap:wrap; justify-content:flex-start; width:100%; gap:16px 10px; padding-top:16px; }
+  /* justify-content:center aqui é seguro (diferente do leque normal, que
+     usa flex-start pra não cortar nas pontas) porque flex-wrap:wrap nunca
+     deixa a linha realmente estourar a largura -- ela quebra antes disso
+     acontecer, então não tem overflow pra centralizar errado. */
+  .org-chart ul.org-chart-grid{ display:flex; flex-wrap:wrap; justify-content:center; width:100%; gap:16px 10px; padding-top:16px; }
   .org-chart ul.org-chart-grid > li{ padding:0; }
   .org-chart ul.org-chart-grid > li::before, .org-chart ul.org-chart-grid > li::after{ display:none; }
   .org-node-card{ display:inline-flex; flex-direction:column; align-items:center; gap:5px; background:var(--surface); border:1px solid var(--line-soft); border-radius:14px; padding:9px 9px 7px; box-shadow:var(--shadow-card); width:126px; position:relative; transition:box-shadow .15s, border-color .15s, transform .15s; }
