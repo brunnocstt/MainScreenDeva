@@ -1496,7 +1496,7 @@
     var todas = APP_NIVEIS[appId] || [];
     if (appId !== 'topdealer') return todas;
     if (callerNivelNoApp === 'administrador') return todas;
-    if (callerNivelNoApp === 'admin_local') return todas.filter(function(n){ return n.value === 'usuario'; });
+    if (callerNivelNoApp === 'admin_local') return todas.filter(function(n){ return n.value === 'usuario' || n.value === 'admin_local'; });
     if (!callerNivelNoApp) {
       if (callerPapelHub === 'proprietario' || callerPapelHub === 'co_proprietario') return todas;
       return [];
@@ -1513,7 +1513,7 @@
     ];
     if (papelLogado === 'proprietario' || papelLogado === 'co_proprietario') return TODAS;
     if (papelLogado === 'admin_geral') return TODAS.filter(function(o){ return o.value === '' || o.value === 'admin_area'; });
-    if (papelLogado === 'admin_area') return TODAS.filter(function(o){ return o.value === ''; });
+    if (papelLogado === 'admin_area') return TODAS.filter(function(o){ return o.value === '' || o.value === 'admin_area'; });
     return [];
   }
 
