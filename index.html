@@ -98,6 +98,13 @@
   .app-check-row label{ font-size:.85rem; font-weight:600; color:var(--ink-soft); flex:1; cursor:pointer; }
   .app-check-row.disabled label{ color:var(--muted-2); cursor:not-allowed; }
   .app-check-row .em-breve{ font-size:.66rem; font-weight:700; color:var(--muted-2); background:var(--surface-2); padding:2px 8px; border-radius:999px; }
+  .app-pick-row{ all:unset; box-sizing:border-box; display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:16px; cursor:pointer; width:100%; }
+  .app-pick-row:hover{ background:var(--surface-2); }
+  .app-pick-row .nome{ font-size:.85rem; font-weight:600; color:var(--ink-soft); flex:1; }
+  .app-pick-row .status{ font-size:.72rem; font-weight:700; padding:3px 10px; border-radius:999px; background:var(--surface-2); color:var(--muted-2); }
+  .app-pick-row .status.tem-acesso{ background:var(--good-soft); color:var(--good); }
+  .app-pick-row.disabled{ cursor:not-allowed; opacity:.55; }
+  .app-pick-row svg.chevron{ color:var(--muted-2); flex-shrink:0; }
   .modal-section-label{ font-size:.72rem; font-weight:700; color:var(--muted-2); text-transform:uppercase; letter-spacing:.03em; margin:18px 0 6px; }
   /* SEM scroll próprio aqui -- o modal-card inteiro já rola (overflow-y:auto
      lá em cima). Um scroll dentro de outro scroll é a pior UX que existe;
@@ -701,14 +708,41 @@
         <div style="font-size:.76rem;color:var(--muted-2);" id="edit-modal-email"></div>
       </div>
     </div>
-    <p class="modal-note" id="edit-modal-note">Marque os apps que essa pessoa deve acessar. Se for a primeira vez, o login é criado na hora e a senha é enviada por e-mail — não precisa de nenhum passo separado.</p>
-    <div id="edit-modal-apps" style="display:flex;flex-direction:column;gap:2px;margin-bottom:18px;"></div>
-    <div class="modal-section-label">Filiais com acesso</div>
-    <p class="modal-note" style="margin:0 0 8px;">Vale pra qualquer app dela — marque uma, duas, três ou quantas precisar.</p>
-    <div id="edit-modal-filiais" class="filiais-wrap" style="display:flex;flex-direction:column;gap:2px;margin-bottom:18px;"></div>
+    <p class="modal-note" id="edit-modal-note">Clique num app pra ver ou mudar o acesso dessa pessoa a ele -- nível e filial são configurados por dentro de cada app, não aqui.</p>
+    <div id="edit-modal-apps" style="display:flex;flex-direction:column;gap:2px;margin-bottom:4px;"></div>
     <div class="modal-actions">
-      <button type="button" class="btn btn-ghost" id="edit-modal-cancel">Cancelar</button>
-      <button type="button" class="btn btn-primary" id="edit-modal-save">Salvar</button>
+      <button type="button" class="btn btn-ghost" id="edit-modal-cancel">Fechar</button>
+    </div>
+   </div>
+  </div>
+</div>
+
+<!-- modal: acesso a UM app específico (nível + filial extra, quando o app tiver) -->
+<div class="modal-overlay" id="app-acesso-modal" hidden>
+  <div class="modal-card">
+   <div class="modal-card-scroll">
+    <div class="modal-head"><h2 id="app-acesso-modal-title">App</h2><button type="button" class="modal-close" id="app-acesso-modal-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <p class="modal-note" id="app-acesso-modal-pessoa" style="margin:0 0 16px;"></p>
+
+    <div class="app-check-row" style="margin-bottom:4px;">
+      <input type="checkbox" id="app-acesso-flag">
+      <label for="app-acesso-flag">Conceder acesso a este app</label>
+    </div>
+
+    <div id="app-acesso-detalhes" hidden style="margin-top:14px;">
+      <div class="field" style="margin-bottom:14px;">
+        <label style="display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:6px;">Nível de acesso</label>
+        <select id="app-acesso-nivel" style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font-size:.9rem;"></select>
+      </div>
+      <div id="app-acesso-filiais-wrap" hidden>
+        <div class="modal-section-label" id="app-acesso-filiais-label">Acesso extra de filial</div>
+        <div id="app-acesso-filiais" class="filiais-wrap" style="display:flex;flex-direction:column;gap:2px;margin-bottom:4px;"></div>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:18px;">
+      <button type="button" class="btn btn-ghost" id="app-acesso-modal-cancel">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="app-acesso-modal-save">Salvar</button>
     </div>
    </div>
   </div>
@@ -1229,10 +1263,9 @@
 
   function carregarGestaoUsuarios(){
     document.getElementById('gestao-sub').textContent = 'carregando…';
-    chamarHub({ action: 'listar' }).then(function(res){
+    return chamarHub({ action: 'listar' }).then(function(res){
       if (!res.ok) { toast('Erro ao carregar usuários: ' + (res.data.error || '')); return; }
       gestaoDados = res.data;
-      var filiaisUnicas = Array.from(new Set(gestaoDados.pessoas.map(function(p){ return p.filial_id; }))).length;
       popularFiltroFilial();
       renderGestao();
     });
@@ -1406,6 +1439,26 @@
   var editModal = document.getElementById('edit-modal');
   var pessoaEmEdicaoId = null;
 
+  // Rótulo e cor de cada nível, por app -- usado tanto pro "chip" de status
+  // na lista de apps quanto pras opções do select dentro do modal de app.
+  var APP_NIVEIS = {
+    topdealer: [
+      { value: 'usuario', label: 'Usuário' },
+      { value: 'admin_local', label: 'Admin local' },
+      { value: 'administrador', label: 'Administrador' }
+    ],
+    pm: [
+      { value: 'visualizador', label: 'Visualizador' },
+      { value: 'editor', label: 'Editor' },
+      { value: 'admin_area', label: 'Admin de área' },
+      { value: 'admin_geral', label: 'Admin geral' }
+    ]
+  };
+  function labelNivel(appId, valor){
+    var n = (APP_NIVEIS[appId] || []).find(function(x){ return x.value === valor; });
+    return n ? n.label : (valor || 'Com acesso');
+  }
+
   function abrirEdicao(pessoaId){
     var p = gestaoDados.pessoas.find(function(x){ return x.id === pessoaId; });
     if (!p) return;
@@ -1423,29 +1476,34 @@
     } else if (p.acesso_bloqueado) {
       nota.textContent = 'Essa pessoa está bloqueada -- reative antes de conceder acesso.';
     } else {
-      nota.textContent = 'Marque os apps que essa pessoa deve acessar. Se for a primeira vez, o login é criado na hora e a senha é enviada por e-mail -- não precisa de nenhum passo separado.';
+      nota.textContent = 'Clique num app pra ver ou mudar o acesso dessa pessoa a ele -- nível e filial são configurados por dentro de cada app, não aqui.';
     }
 
     var podeEditar = !!p.email && !p.acesso_bloqueado;
     var wrap = document.getElementById('edit-modal-apps');
+    var chevron = '<svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     wrap.innerHTML = APPS.map(function(a){
       var disponivel = gestaoDados.apps_disponiveis.indexOf(a.id) !== -1;
-      var marcado = disponivel && !!acessoApp(a.id, p.id, conta && conta.id);
       if (!disponivel) {
-        return '<div class="app-check-row disabled"><input type="checkbox" disabled><label>' + escapeHtml(a.name) + '</label><span class="em-breve">Em breve</span></div>';
+        return '<div class="app-pick-row disabled"><span class="nome">' + escapeHtml(a.name) + '</span><span class="em-breve">Em breve</span></div>';
       }
-      return '<div class="app-check-row"><input type="checkbox" id="chk-app-' + a.id + '" data-app-id="' + a.id + '"' +
-        (marcado ? ' checked' : '') + (podeEditar ? '' : ' disabled') + '><label for="chk-app-' + a.id + '">' + escapeHtml(a.name) + '</label></div>';
+      var acesso = acessoApp(a.id, p.id, conta && conta.id);
+      var statusTxt = acesso ? labelNivel(a.id, acesso.role) : 'Sem acesso';
+      var btn = podeEditar
+        ? '<button type="button" class="app-pick-row" data-abrir-app="' + a.id + '">'
+        : '<div class="app-pick-row disabled">';
+      var fechaTag = podeEditar ? '</button>' : '</div>';
+      return btn +
+        '<span class="nome">' + escapeHtml(a.name) + '</span>' +
+        '<span class="status' + (acesso ? ' tem-acesso' : '') + '">' + escapeHtml(statusTxt) + '</span>' +
+        (podeEditar ? chevron : '') +
+        fechaTag;
     }).join('');
 
-    var filiaisAtuais = new Set(filiaisDaPessoa(p.id));
-    var wrapFiliais = document.getElementById('edit-modal-filiais');
-    wrapFiliais.innerHTML = (gestaoDados.filiais || []).map(function(f){
-      return '<div class="app-check-row"><input type="checkbox" id="chk-filial-' + f.id + '" data-filial-id="' + f.id + '"' +
-        (filiaisAtuais.has(f.id) ? ' checked' : '') + (podeEditar ? '' : ' disabled') + '><label for="chk-filial-' + f.id + '">' + escapeHtml(f.nome) + '</label></div>';
-    }).join('') || '<p class="modal-note" style="margin:0;">Nenhuma filial cadastrada.</p>';
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-abrir-app]'), function(btn){
+      btn.addEventListener('click', function(){ abrirAppAcessoModal(pessoaId, btn.getAttribute('data-abrir-app')); });
+    });
 
-    document.getElementById('edit-modal-save').disabled = !podeEditar;
     editModal.hidden = false;
   }
   function fecharEdicao(){ editModal.hidden = true; pessoaEmEdicaoId = null; }
@@ -1543,78 +1601,99 @@
     navigator.clipboard.writeText(v).then(function(){ toast('Senha copiada.'); });
   });
 
-  document.getElementById('edit-modal-save').addEventListener('click', function(){
-    if (!pessoaEmEdicaoId) return;
-    var p = gestaoDados.pessoas.find(function(x){ return x.id === pessoaEmEdicaoId; });
+  // ---------------- MODAL: ACESSO A UM APP ESPECÍFICO ----------------
+  var appAcessoModal = document.getElementById('app-acesso-modal');
+  var appAcessoEmEdicao = null; // { pessoaId, appId }
+
+  function abrirAppAcessoModal(pessoaId, appId){
+    var p = gestaoDados.pessoas.find(function(x){ return x.id === pessoaId; });
+    var appDef = APPS.find(function(a){ return a.id === appId; });
+    if (!p || !appDef) return;
+    appAcessoEmEdicao = { pessoaId: pessoaId, appId: appId };
+
     var conta = contaDaPessoa(p.id);
-    var checks = document.querySelectorAll('#edit-modal-apps input[type=checkbox]:not(:disabled)');
-    var mudancas = [];
-    Array.prototype.forEach.call(checks, function(chk){
-      var appId = chk.getAttribute('data-app-id');
-      var tinhaAntes = !!acessoApp(appId, p.id, conta && conta.id);
-      if (chk.checked !== tinhaAntes) {
-        mudancas.push({ tipo: 'app', app: appId, conceder: chk.checked });
-      }
-    });
+    var acesso = acessoApp(appId, p.id, conta && conta.id);
 
-    // Filiais são independentes de login/app -- comparação de conjunto, não
-    // por item, pq o checklist pode marcar/desmarcar várias de uma vez.
-    var filiaisAntes = new Set(filiaisDaPessoa(p.id));
-    var filiaisChecks = document.querySelectorAll('#edit-modal-filiais input[type=checkbox]:not(:disabled)');
-    var filiaisDepois = [];
-    Array.prototype.forEach.call(filiaisChecks, function(chk){
-      if (chk.checked) filiaisDepois.push(chk.getAttribute('data-filial-id'));
-    });
-    var filiaisMudaram = filiaisDepois.length !== filiaisAntes.size ||
-      filiaisDepois.some(function(id){ return !filiaisAntes.has(id); });
-    if (filiaisMudaram) mudancas.push({ tipo: 'filiais', ids: filiaisDepois });
+    document.getElementById('app-acesso-modal-title').textContent = appDef.name;
+    document.getElementById('app-acesso-modal-pessoa').textContent = p.nome + (p.email ? ' — ' + p.email : '');
 
-    if (mudancas.length === 0) { fecharEdicao(); return; }
+    var flag = document.getElementById('app-acesso-flag');
+    flag.checked = !!acesso;
 
-    var saveBtn = document.getElementById('edit-modal-save');
+    var niveis = APP_NIVEIS[appId] || [];
+    var selNivel = document.getElementById('app-acesso-nivel');
+    selNivel.innerHTML = niveis.map(function(n){ return '<option value="' + n.value + '">' + escapeHtml(n.label) + '</option>'; }).join('');
+    selNivel.value = (acesso && niveis.some(function(n){ return n.value === acesso.role; })) ? acesso.role : (niveis[0] ? niveis[0].value : '');
+
+    var wrapFiliaisBlock = document.getElementById('app-acesso-filiais-wrap');
+    if (appId === 'topdealer') {
+      wrapFiliaisBlock.hidden = false;
+      document.getElementById('app-acesso-filiais-label').textContent =
+        'Acesso extra de filial (além de ' + nomeFilial(p.filial_id) + ', que já é automático)';
+      var extrasAtuais = new Set((gestaoDados.topdealer_acessos_filial || [])
+        .filter(function(af){ return af.pessoa_id === p.id; })
+        .map(function(af){ return af.filial_id; }));
+      var outrasFiliais = (gestaoDados.filiais || []).filter(function(f){ return f.id !== p.filial_id; });
+      document.getElementById('app-acesso-filiais').innerHTML = outrasFiliais.map(function(f){
+        return '<div class="app-check-row"><input type="checkbox" id="chk-aaf-' + f.id + '" data-filial-id="' + f.id + '"' +
+          (extrasAtuais.has(f.id) ? ' checked' : '') + '><label for="chk-aaf-' + f.id + '">' + escapeHtml(f.nome) + '</label></div>';
+      }).join('') || '<p class="modal-note" style="margin:0;">Não tem outra filial cadastrada.</p>';
+    } else {
+      wrapFiliaisBlock.hidden = true;
+    }
+
+    document.getElementById('app-acesso-detalhes').hidden = !flag.checked;
+    appAcessoModal.hidden = false;
+  }
+  function fecharAppAcessoModal(){ appAcessoModal.hidden = true; appAcessoEmEdicao = null; }
+  document.getElementById('app-acesso-modal-close').addEventListener('click', fecharAppAcessoModal);
+  document.getElementById('app-acesso-modal-cancel').addEventListener('click', fecharAppAcessoModal);
+  appAcessoModal.addEventListener('click', function(e){ if (e.target === appAcessoModal) fecharAppAcessoModal(); });
+  document.getElementById('app-acesso-flag').addEventListener('change', function(e){
+    document.getElementById('app-acesso-detalhes').hidden = !e.target.checked;
+  });
+
+  document.getElementById('app-acesso-modal-save').addEventListener('click', function(){
+    if (!appAcessoEmEdicao) return;
+    var pessoaId = appAcessoEmEdicao.pessoaId, appId = appAcessoEmEdicao.appId;
+    var p = gestaoDados.pessoas.find(function(x){ return x.id === pessoaId; });
+    var conta = contaDaPessoa(p.id);
+    var quer = document.getElementById('app-acesso-flag').checked;
+
+    var saveBtn = document.getElementById('app-acesso-modal-save');
     saveBtn.disabled = true;
     saveBtn.textContent = 'Salvando…';
 
-    var contaIdAtual = conta ? conta.id : null;
-    var loginFoiCriado = false;
-    var emailFalhou = false;
-    var senhaCriada = null;
-
-    // sequencial (não paralelo) -- a primeira concessão pode criar o login,
-    // e as chamadas seguintes precisam do conta_id que só existe depois disso
-    function processar(i){
-      if (i >= mudancas.length) {
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Salvar';
-        fecharEdicao();
-        if (loginFoiCriado) {
-          mostrarSenhaGerada(p.email, senhaCriada, !emailFalhou);
-        } else {
-          toast('Acesso atualizado.');
-        }
-        carregarGestaoUsuarios();
-        return;
+    function finalizar(res){
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Salvar';
+      if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
+      fecharAppAcessoModal();
+      if (res.data.login_criado) {
+        mostrarSenhaGerada(p.email, res.data.senha_temporaria, res.data.email_enviado !== false);
+      } else {
+        toast('Acesso atualizado.');
       }
-      var m = mudancas[i];
-      if (m.tipo === 'filiais') {
-        chamarHub({ action: 'salvar_filiais', pessoa_id: p.id, filial_ids: m.ids }).then(function(res){
-          if (!res.ok) { toast('Erro ao salvar filiais: ' + (res.data.error || '')); saveBtn.disabled = false; saveBtn.textContent = 'Salvar'; return; }
-          processar(i + 1);
-        });
-        return;
-      }
-      var body = m.conceder
-        ? { action: 'conceder_acesso', app: m.app, conta_id: contaIdAtual, pessoa_id: p.id }
-        : { action: 'revogar_acesso', app: m.app, conta_id: contaIdAtual, pessoa_id: p.id };
-      chamarHub(body).then(function(res){
-        if (!res.ok) { toast('Erro ao salvar "' + m.app + '": ' + (res.data.error || '')); saveBtn.disabled = false; saveBtn.textContent = 'Salvar'; return; }
-        if (res.data.conta_id) contaIdAtual = res.data.conta_id;
-        if (res.data.login_criado) { loginFoiCriado = true; senhaCriada = res.data.senha_temporaria; }
-        if (res.data.email_enviado === false) emailFalhou = true;
-        processar(i + 1);
-      });
+      carregarGestaoUsuarios().then(function(){ abrirEdicao(pessoaId); });
     }
-    processar(0);
+
+    if (!quer) {
+      chamarHub({ action: 'revogar_acesso', app: appId, conta_id: conta && conta.id, pessoa_id: pessoaId }).then(finalizar);
+      return;
+    }
+
+    var body = {
+      action: 'conceder_acesso', app: appId, conta_id: conta && conta.id, pessoa_id: pessoaId,
+      nivel: document.getElementById('app-acesso-nivel').value
+    };
+    if (appId === 'topdealer') {
+      var extras = [];
+      Array.prototype.forEach.call(document.querySelectorAll('#app-acesso-filiais input[type=checkbox]:checked'), function(chk){
+        extras.push(chk.getAttribute('data-filial-id'));
+      });
+      body.filial_extra_ids = extras;
+    }
+    chamarHub(body).then(finalizar);
   });
 
   document.getElementById('pessoas-search').addEventListener('input', function(e){ estadoGestao.busca = e.target.value; renderGestao(); });
