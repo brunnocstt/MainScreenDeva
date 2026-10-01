@@ -215,7 +215,7 @@
      leque linha-a-linha por uma barra única no topo (acima de todo mundo)
      + um tracinho vertical por card -- continua claro que são todos filhos
      do mesmo card, sem precisar calcular posição individual de cada um. */
-  .org-chart ul.org-chart-grid{ display:flex; flex-wrap:wrap; justify-content:center; max-width:min(1150px, calc(100vw - 120px)); gap:16px 10px; border-top:1.5px solid var(--line); padding-top:16px; }
+  .org-chart ul.org-chart-grid{ display:flex; flex-wrap:wrap; justify-content:flex-start; max-width:min(1150px, calc(100vw - 120px)); gap:16px 10px; border-top:1.5px solid var(--line); padding-top:16px; }
   .org-chart ul.org-chart-grid::before{ display:none; }
   .org-chart ul.org-chart-grid > li{ padding:10px 0 0; }
   .org-chart ul.org-chart-grid > li::before{ content:''; position:absolute; top:0; left:50%; width:0; height:10px; border-left:1.5px solid var(--line); border-top:0 none; right:auto; }
