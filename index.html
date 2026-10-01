@@ -959,19 +959,14 @@
     f.type = isPass ? 'text' : 'password';
   });
 
-  // Login com Microsoft/Azure -- marcado com uma flag pra, quando a sessão
-  // voltar, passar pela hub-resolver-login (confere acesso por e-mail e
-  // migra a identidade pro novo id no primeiro login via Azure).
   var HUB_RESOLVER_LOGIN_FN_URL = SUPABASE_URL + '/functions/v1/hub-resolver-login';
   document.getElementById('login-microsoft').addEventListener('click', function(){
     loginError.hidden = true;
-    sessionStorage.setItem('deva_login_mfa_pendente', '1');
     sb.auth.signInWithOAuth({
       provider: 'azure',
       options: { redirectTo: window.location.href, scopes: 'openid profile email' }
     }).then(function(res){
       if (res.error) {
-        sessionStorage.removeItem('deva_login_mfa_pendente');
         loginError.textContent = 'Não deu pra iniciar o login com Microsoft. Tenta de novo.';
         loginError.hidden = false;
       }
@@ -995,14 +990,20 @@
       body: '{}'
     }).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, data: j }; }); })
       .then(function(res){
-        if (!res.ok || !res.data.autorizado) {
+        // "Não autorizado" de verdade (a function respondeu, e negou) --
+        // aí sim bloqueia. Erro técnico (rede, 500, CORS) NÃO desloga
+        // ninguém -- cai no catch abaixo e segue mostrando o Hub com a
+        // sessão que já tinha, pra uma instabilidade passageira na function
+        // não derrubar todo mundo a cada F5.
+        if (res.ok && res.data.autorizado === false) {
           negarAcesso('Você não possui acesso, contate o administrador do sistema.');
           return;
         }
         showApp(session);
       })
-      .catch(function(){
-        negarAcesso('Não foi possível verificar seu acesso agora. Tenta de novo.');
+      .catch(function(err){
+        console.error('hub-resolver-login: falha técnica, seguindo com a sessão existente:', err);
+        showApp(session);
       });
   }
 
@@ -1074,14 +1075,16 @@
     });
   });
 
+  // TOKEN_REFRESHED dispara sozinho em segundo plano (a cada ~1h, renovando
+  // o access_token) -- nunca deve reconferir autorização nem trocar de tela,
+  // senão um refresh silencioso no meio do uso derruba a pessoa pra tela de
+  // login à toa. Só INITIAL_SESSION (carregou a página com sessão via
+  // cookie) e SIGNED_IN (login de verdade, por senha ou Microsoft) passam
+  // pela verificação de acesso.
   sb.auth.onAuthStateChange(function(event, session){
     if (!session) { showLoginScreen(); return; }
-    if (sessionStorage.getItem('deva_login_mfa_pendente') === '1') {
-      sessionStorage.removeItem('deva_login_mfa_pendente');
-      verificarAutorizacaoELogar(session);
-      return;
-    }
-    showApp(session);
+    if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
+    verificarAutorizacaoELogar(session);
   });
 
   function showLoginScreen(){
