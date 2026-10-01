@@ -210,6 +210,16 @@
   .org-chart li:only-child::before, .org-chart li:only-child::after{ display:none; border:0 none; }
   .org-chart li > ul{ padding-top:16px; position:relative; }
   .org-chart li > ul::before{ content:''; position:absolute; top:0; left:50%; width:0; height:16px; border-left:1.5px solid var(--line); }
+  /* Muita gente embaixo de um nome só (ex: Cleiton com dezenas de diretos):
+     em vez de uma linha horizontal gigantesca, quebra em grade. Troca o
+     leque linha-a-linha por uma barra única no topo (acima de todo mundo)
+     + um tracinho vertical por card -- continua claro que são todos filhos
+     do mesmo card, sem precisar calcular posição individual de cada um. */
+  .org-chart ul.org-chart-grid{ display:flex; flex-wrap:wrap; justify-content:center; max-width:min(1150px, calc(100vw - 120px)); gap:16px 10px; border-top:1.5px solid var(--line); padding-top:16px; }
+  .org-chart ul.org-chart-grid::before{ display:none; }
+  .org-chart ul.org-chart-grid > li{ padding:10px 0 0; }
+  .org-chart ul.org-chart-grid > li::before{ content:''; position:absolute; top:0; left:50%; width:0; height:10px; border-left:1.5px solid var(--line); border-top:0 none; right:auto; }
+  .org-chart ul.org-chart-grid > li::after{ display:none; }
   .org-node-card{ display:inline-flex; flex-direction:column; align-items:center; gap:5px; background:var(--surface); border:1px solid var(--line-soft); border-radius:14px; padding:9px 9px 7px; box-shadow:var(--shadow-card); width:126px; position:relative; transition:box-shadow .15s, border-color .15s, transform .15s; }
   .org-node-card .avatar{ width:32px; height:32px; font-size:.64rem; flex-shrink:0; }
   .org-node-info{ min-width:0; width:100%; }
@@ -1854,8 +1864,11 @@
         return cardHtml(p, { compacta: true, clicavel: true }) + '<div class="org-breadcrumb-line"></div>';
       }).join('') + '</div>';
     }
+    // Muita gente direto num nome só (ex: Cleiton): quebra em grade em vez
+    // de uma linha horizontal gigantesca -- bem menos scroll lateral.
+    var ulFilhosClasse = filhosFoco.length > 8 ? ' class="org-chart-grid"' : '';
     html += '<ul class="org-chart"><li>' + cardHtml(foco, { atual: true }) +
-      (filhosFoco.length ? '<ul>' + filhosFoco.map(function(f){ return '<li>' + cardHtml(f, { clicavel: true }) + '</li>'; }).join('') + '</ul>' : '') +
+      (filhosFoco.length ? '<ul' + ulFilhosClasse + '>' + filhosFoco.map(function(f){ return '<li>' + cardHtml(f, { clicavel: true }) + '</li>'; }).join('') + '</ul>' : '') +
       '</li></ul>';
     if (!filhosFoco.length) html += '<p class="modal-note" style="margin-top:6px;">' + (orgFiltroFilial ? 'Ninguém dessa filial por aqui.' : 'Sem subordinados diretos.') + '</p>';
     html += '</div>';
@@ -1891,7 +1904,12 @@
     var tree = document.getElementById('org-tree');
     if (!tree || tree.offsetParent === null) return;
     var topo = tree.getBoundingClientRect().top;
-    var altura = window.innerHeight - topo - 24;
+    // o padding de baixo do main.content entra DEPOIS do #org-tree no fluxo
+    // -- se não descontar ele aqui, a página toda ainda estoura o viewport
+    // por causa dele e a barra "flutua" em vez de ficar cravada embaixo.
+    var mainEl = tree.closest('main.content') || tree.closest('main');
+    var paddingBaixo = mainEl ? parseFloat(getComputedStyle(mainEl).paddingBottom) || 0 : 0;
+    var altura = window.innerHeight - topo - paddingBaixo - 8;
     tree.style.height = Math.max(altura, 280) + 'px';
   }
   window.addEventListener('resize', ajustarAlturaOrgTree);
