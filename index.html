@@ -708,6 +708,18 @@
         <div style="font-size:.76rem;color:var(--muted-2);" id="edit-modal-email"></div>
       </div>
     </div>
+    <div class="modal-section-label" style="margin-top:0;">Papel no Hub</div>
+    <div id="edit-modal-papel-hub-wrap">
+      <select id="edit-modal-papel-hub" style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font-size:.9rem;">
+        <option value="">Usuário</option>
+        <option value="admin_area">Administrador de Área</option>
+        <option value="admin_geral">Administrador Geral</option>
+        <option value="co_proprietario">Co-Proprietário</option>
+      </select>
+    </div>
+    <p class="modal-note" style="margin:6px 0 0;">Controla o que essa pessoa pode gerenciar no Hub em si (gente, acessos) -- é diferente do nível dela dentro de cada app, configurado abaixo.</p>
+
+    <div class="modal-section-label">Acesso aos apps</div>
     <p class="modal-note" id="edit-modal-note">Clique num app pra ver ou mudar o acesso dessa pessoa a ele -- nível e filial são configurados por dentro de cada app, não aqui.</p>
     <div id="edit-modal-apps" style="display:flex;flex-direction:column;gap:2px;margin-bottom:4px;"></div>
     <div class="modal-actions">
@@ -1134,7 +1146,7 @@
     var uid = session.user.id;
 
     sb.from('contas')
-      .select('hub_admin, must_change_password, pessoas(id, nome, email, avatar_url, filiais(nome))')
+      .select('hub_admin, papel_hub, must_change_password, pessoas(id, nome, email, avatar_url, filiais(nome))')
       .eq('id', uid)
       .maybeSingle()
       .then(function(res){
@@ -1162,7 +1174,14 @@
         var filialNome = '';
         var hubAdmin = false;
         if (res.data) {
-          hubAdmin = !!res.data.hub_admin;
+          // hub_admin é a flag antiga, mantida por compatibilidade; a fonte
+          // de verdade agora é papel_hub -- qualquer um dos 4 papéis com
+          // gestão (proprietário/co-proprietário/admin geral/admin de área)
+          // libera o acesso à tela de Configurações, só que cada um vê um
+          // recorte diferente de gente lá dentro (isso já é filtrado pela
+          // própria Edge Function).
+          var PAPEIS_COM_GESTAO = ['proprietario', 'co_proprietario', 'admin_geral', 'admin_area'];
+          hubAdmin = !!res.data.hub_admin || PAPEIS_COM_GESTAO.indexOf(res.data.papel_hub) !== -1;
           if (res.data.pessoas) {
             pessoaNome = res.data.pessoas.nome || pessoaNome;
             pessoaId = res.data.pessoas.id;
@@ -1470,6 +1489,29 @@
     document.getElementById('edit-modal-nome').textContent = p.nome;
     document.getElementById('edit-modal-email').textContent = p.email || 'sem e-mail cadastrado';
 
+    var wrapPapel = document.getElementById('edit-modal-papel-hub-wrap');
+    if (!conta) {
+      wrapPapel.innerHTML = '<p class="modal-note" style="margin:0;">Sem login no Hub ainda -- conceda acesso a algum app primeiro.</p>';
+    } else if (conta.papel_hub === 'proprietario') {
+      wrapPapel.innerHTML = '<p class="modal-note" style="margin:0;">Proprietário -- não muda por aqui.</p>';
+    } else {
+      if (!document.getElementById('edit-modal-papel-hub')) {
+        wrapPapel.innerHTML = '<select id="edit-modal-papel-hub" style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font-size:.9rem;">' +
+          '<option value="">Usuário</option>' +
+          '<option value="admin_area">Administrador de Área</option>' +
+          '<option value="admin_geral">Administrador Geral</option>' +
+          '<option value="co_proprietario">Co-Proprietário</option>' +
+          '</select>';
+      }
+      var selPapel = document.getElementById('edit-modal-papel-hub');
+      // atribuição direta (não addEventListener) -- idempotente, nunca
+      // duplica o handler mesmo chamando abrirEdicao() várias vezes.
+      selPapel.onchange = salvarPapelHubHandler;
+      selPapel.value = conta.papel_hub || '';
+      selPapel.setAttribute('data-valor-anterior', conta.papel_hub || '');
+      selPapel.disabled = false;
+    }
+
     var nota = document.getElementById('edit-modal-note');
     if (!p.email) {
       nota.textContent = 'Essa pessoa não tem e-mail cadastrado -- não é possível conceder acesso a nenhum app até isso ser corrigido.';
@@ -1507,6 +1549,24 @@
     editModal.hidden = false;
   }
   function fecharEdicao(){ editModal.hidden = true; pessoaEmEdicaoId = null; }
+
+  function salvarPapelHubHandler(e){
+    var sel = e.target;
+    var valorNovo = sel.value;
+    var valorAnterior = sel.getAttribute('data-valor-anterior') || '';
+    sel.disabled = true;
+    chamarHub({ action: 'definir_papel_hub', pessoa_id: pessoaEmEdicaoId, papel_hub: valorNovo || 'usuario' }).then(function(res){
+      sel.disabled = false;
+      if (!res.ok) {
+        toast('Erro: ' + (res.data.error || ''));
+        sel.value = valorAnterior;
+        return;
+      }
+      sel.setAttribute('data-valor-anterior', valorNovo);
+      toast('Papel no Hub atualizado.');
+      carregarGestaoUsuarios();
+    });
+  }
 
   document.getElementById('edit-modal-close').addEventListener('click', fecharEdicao);
   document.getElementById('edit-modal-cancel').addEventListener('click', fecharEdicao);
