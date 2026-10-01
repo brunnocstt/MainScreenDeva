@@ -186,7 +186,7 @@
   .org-pendencia-texto{ font-size:.82rem; color:var(--ink-soft); }
   .org-pendencia-texto b{ color:var(--ink); }
   .org-pendencia-acoes{ display:flex; gap:8px; flex-shrink:0; }
-  .org-tree{ overflow:auto; height:calc(100vh - 190px); padding:24px 24px 24px; scrollbar-width:thin; scrollbar-color:var(--line-soft) transparent; }
+  .org-tree{ overflow:auto; height:60vh; padding:24px 24px 24px; scrollbar-width:thin; scrollbar-color:var(--line-soft) transparent; }
   .org-tree::-webkit-scrollbar{ height:10px; width:10px; }
   .org-tree::-webkit-scrollbar-track{ background:transparent; }
   .org-tree::-webkit-scrollbar-thumb{ background-color:var(--line-soft); border-radius:999px; border:3px solid var(--canvas); background-clip:padding-box; }
@@ -230,7 +230,6 @@
   .org-node-compacta .nome{ font-size:.66rem; }
   .org-node-compacta .cargo{ font-size:.58rem; }
   .org-node-compacta.org-node-clicavel:hover{ background:var(--accent-soft); transform:none; box-shadow:none; border-color:transparent; }
-  .org-node-fora-filtro{ opacity:.32; }
   .org-node-filial-match{ border-color:var(--good); box-shadow:0 0 0 2px var(--good-soft); }
   .org-node-filial-match .org-node-badge{ border-color:var(--good); color:var(--good); }
   .table-wrap{ overflow-x:auto; }
@@ -1766,23 +1765,32 @@
       return orgDados.caller.edicao_direta || pessoa.gestor_imediato_id === orgDados.caller.pessoa_id;
     }
 
+    // Filhos que fazem sentido mostrar: sem filtro de filial, todos; com
+    // filtro, só quem é da filial OU tem alguém da filial em algum lugar
+    // mais abaixo nesse ramo (oculta ramo morto, mas nunca corta uma
+    // ligação real pra não repetir o bug do Alaxmandriel/Kalindya).
+    function filhosVisiveis(pessoa){
+      var filhos = porGestor[pessoa.id] || [];
+      if (!orgFiltroFilial) return filhos;
+      return filhos.filter(function(f){ return f.filial_id === orgFiltroFilial || contarDescendentesFilial(f) > 0; });
+    }
+
     // Card de uma pessoa. `compacta` = card pequeno da trilha de ancestrais;
     // `clicavel` = tem filhos e pode ser focado (o card inteiro é o alvo do
     // clique, não só um botão); `atual` = é quem está em foco agora. Com
-    // filtro de filial ativo, quem não é dela fica esmaecido e quem é ganha
-    // um contorno -- a árvore continua sendo só um ramo por vez, igual
-    // sempre foi, só com uma pista visual de pra onde clicar.
+    // filtro de filial ativo, quem é da filial ganha um contorno de
+    // destaque -- a árvore continua sendo só um ramo por vez, igual sempre
+    // foi.
     function cardHtml(pessoa, opts){
       opts = opts || {};
-      var filhos = porGestor[pessoa.id] || [];
-      var temFilhos = filhos.length > 0;
-      var aplicaFiltroFilial = !!orgFiltroFilial && !opts.atual && !opts.compacta;
+      var filhosMostrados = filhosVisiveis(pessoa);
+      var temFilhos = filhosMostrados.length > 0;
+      var ehMatchFilial = !!orgFiltroFilial && !opts.compacta && pessoa.filial_id === orgFiltroFilial;
       var classes = 'org-node-card' +
         (opts.compacta ? ' org-node-compacta' : '') +
         (opts.atual ? ' org-node-atual' : '') +
         (temFilhos && opts.clicavel ? ' org-node-clicavel' : '') +
-        (aplicaFiltroFilial && pessoa.filial_id === orgFiltroFilial ? ' org-node-filial-match' : '') +
-        (aplicaFiltroFilial && pessoa.filial_id !== orgFiltroFilial ? ' org-node-fora-filtro' : '');
+        (ehMatchFilial ? ' org-node-filial-match' : '');
       var badge = '';
       if (temFilhos && !opts.compacta) {
         var count = orgFiltroFilial ? contarDescendentesFilial(pessoa) : contarDescendentes(pessoa);
@@ -1800,7 +1808,7 @@
     // Renderizador recursivo de verdade, só usado na faixa "sem vínculo
     // direto" (poucas pessoas, cabe mostrar a ramificação inteira ali).
     function nodeHtml(pessoa){
-      var filhos = porGestor[pessoa.id] || [];
+      var filhos = filhosVisiveis(pessoa);
       var html = '<li>' + cardHtml(pessoa, {});
       if (filhos.length) {
         html += '<ul>' + filhos.map(function(f){ return nodeHtml(f); }).join('') + '</ul>';
@@ -1839,7 +1847,7 @@
     var cursor = foco.gestor_imediato_id ? pessoaOrg(foco.gestor_imediato_id) : null;
     while (cursor) { ancestrais.unshift(cursor); cursor = cursor.gestor_imediato_id ? pessoaOrg(cursor.gestor_imediato_id) : null; }
 
-    var filhosFoco = porGestor[foco.id] || [];
+    var filhosFoco = filhosVisiveis(foco);
     var html = '<div class="org-tree-principal">';
     if (ancestrais.length) {
       html += '<div class="org-breadcrumb">' + ancestrais.map(function(p){
@@ -1849,12 +1857,17 @@
     html += '<ul class="org-chart"><li>' + cardHtml(foco, { atual: true }) +
       (filhosFoco.length ? '<ul>' + filhosFoco.map(function(f){ return '<li>' + cardHtml(f, { clicavel: true }) + '</li>'; }).join('') + '</ul>' : '') +
       '</li></ul>';
-    if (!filhosFoco.length) html += '<p class="modal-note" style="margin-top:6px;">Sem subordinados diretos.</p>';
+    if (!filhosFoco.length) html += '<p class="modal-note" style="margin-top:6px;">' + (orgFiltroFilial ? 'Ninguém dessa filial por aqui.' : 'Sem subordinados diretos.') + '</p>';
     html += '</div>';
 
-    if (soltas.length) {
+    // Com filtro de filial, raiz solta sem ninguém da filial em lugar
+    // nenhum do próprio ramo nem some da faixa inteira.
+    var soltasVisiveis = orgFiltroFilial
+      ? soltas.filter(function(p){ return p.filial_id === orgFiltroFilial || contarDescendentesFilial(p) > 0; })
+      : soltas;
+    if (soltasVisiveis.length) {
       html += '<div class="org-tree-soltos-label">Sem vínculo direto no organograma</div>' +
-        '<div class="org-tree-soltos">' + soltas.map(function(p){ return '<ul class="org-chart">' + nodeHtml(p) + '</ul>'; }).join('') + '</div>';
+        '<div class="org-tree-soltos">' + soltasVisiveis.map(function(p){ return '<ul class="org-chart">' + nodeHtml(p) + '</ul>'; }).join('') + '</div>';
     }
     tree.innerHTML = html;
 
@@ -1868,7 +1881,20 @@
         renderOrgTree();
       });
     });
+    ajustarAlturaOrgTree();
   }
+
+  // Altura calculada de verdade (não chutada) -- a barra de rolagem fica
+  // sempre na mesma posição na tela, nunca "dançando" com o resto da
+  // página, não importa o que tenha acima dela (toolbar, pendências etc).
+  function ajustarAlturaOrgTree(){
+    var tree = document.getElementById('org-tree');
+    if (!tree || tree.offsetParent === null) return;
+    var topo = tree.getBoundingClientRect().top;
+    var altura = window.innerHeight - topo - 24;
+    tree.style.height = Math.max(altura, 280) + 'px';
+  }
+  window.addEventListener('resize', ajustarAlturaOrgTree);
 
   // ---------------- MODAL: MOVER NO ORGANOGRAMA ----------------
   var moverModal = document.getElementById('mover-modal');
