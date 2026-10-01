@@ -834,16 +834,37 @@
   var SUPABASE_URL = 'https://iueakatarwkvaoomhhah.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_MpmQzxPjbmNIL2X8SE7uHg_LzydC1Gf';
 
-  // Sessão no localStorage padrão do navegador (comportamento default do
-  // SDK). Uma implementação anterior guardava a sessão num cookie
-  // customizado com domain=.albusdata.com.br pra tentar compartilhar login
-  // entre subdomínios -- causava deslogamento a cada F5 (a leitura do
-  // cookie falhava de forma intermitente, por um motivo não totalmente
-  // isolado) e foi removida. Login agora é por domínio, como sempre foi
-  // nos outros apps (TopDealer, Ferramentaria) -- sem SSO automático entre
-  // eles por enquanto.
-  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Sessão guardada em cookie com domain=.albusdata.com.br em vez do
+  // localStorage padrão -- assim o login feito aqui no Hub também é
+  // enxergado pelos apps em outros subdomínios (topdealerdeva.*, etc.),
+  // sem precisar passar token nenhum na URL. Mesmo storageKey precisa ser
+  // usado em TODOS os apps pra ler o mesmo cookie.
+  var DEVA_COOKIE_DOMAIN = '.albusdata.com.br';
+  var DEVA_STORAGE_KEY = 'sb-deva-auth';
+  function criarCookieStorage(domain){
+    var emLocalhost = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+    var secure = (location.protocol === 'https:') ? '; Secure' : '';
+    var dominio = emLocalhost ? '' : ('; domain=' + domain);
+    function lerCookie(nome){
+      var partes = ('; ' + document.cookie).split('; ' + nome + '=');
+      if (partes.length < 2) return null;
+      return decodeURIComponent(partes.pop().split(';').shift());
+    }
+    return {
+      getItem: function(key){ return lerCookie(key); },
+      setItem: function(key, value){
+        document.cookie = key + '=' + encodeURIComponent(value) + dominio +
+          '; path=/; max-age=' + (60*60*24*30) + '; SameSite=Lax' + secure;
+      },
+      removeItem: function(key){
+        document.cookie = key + '=' + dominio + '; path=/; max-age=0; SameSite=Lax' + secure;
+      }
+    };
+  }
 
+  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { storage: criarCookieStorage(DEVA_COOKIE_DOMAIN), storageKey: DEVA_STORAGE_KEY }
+  });
   var HUB_FN_URL = SUPABASE_URL + '/functions/v1/hub-manage-access';
   var HUB_FORGOT_FN_URL = SUPABASE_URL + '/functions/v1/hub-forgot-password';
   var HUB_ORG_FN_URL = SUPABASE_URL + '/functions/v1/hub-organograma';
@@ -938,7 +959,6 @@
     f.type = isPass ? 'text' : 'password';
   });
 
-  var HUB_RESOLVER_LOGIN_FN_URL = SUPABASE_URL + '/functions/v1/hub-resolver-login';
   document.getElementById('login-microsoft').addEventListener('click', function(){
     loginError.hidden = true;
     sb.auth.signInWithOAuth({
@@ -951,40 +971,6 @@
       }
     });
   });
-
-  function verificarAutorizacaoELogar(session){
-    esconderTodasAsTelas();
-    bootShell.hidden = false;
-    function negarAcesso(msg){
-      sb.auth.signOut().then(function(){
-        esconderTodasAsTelas();
-        loginShell.hidden = false;
-        loginError.textContent = msg;
-        loginError.hidden = false;
-      });
-    }
-    fetch(HUB_RESOLVER_LOGIN_FN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-      body: '{}'
-    }).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, data: j }; }); })
-      .then(function(res){
-        // "Não autorizado" de verdade (a function respondeu, e negou) --
-        // aí sim bloqueia. Erro técnico (rede, 500, CORS) NÃO desloga
-        // ninguém -- cai no catch abaixo e segue mostrando o Hub com a
-        // sessão que já tinha, pra uma instabilidade passageira na function
-        // não derrubar todo mundo a cada F5.
-        if (res.ok && res.data.autorizado === false) {
-          negarAcesso('Você não possui acesso, contate o administrador do sistema.');
-          return;
-        }
-        showApp(session);
-      })
-      .catch(function(err){
-        console.error('hub-resolver-login: falha técnica, seguindo com a sessão existente:', err);
-        showApp(session);
-      });
-  }
 
   document.getElementById('login-form').addEventListener('submit', function(e){
     e.preventDefault();
@@ -1054,16 +1040,8 @@
     });
   });
 
-  // TOKEN_REFRESHED dispara sozinho em segundo plano (a cada ~1h, renovando
-  // o access_token) -- nunca deve reconferir autorização nem trocar de tela,
-  // senão um refresh silencioso no meio do uso derruba a pessoa pra tela de
-  // login à toa. Só INITIAL_SESSION (carregou a página com sessão via
-  // cookie) e SIGNED_IN (login de verdade, por senha ou Microsoft) passam
-  // pela verificação de acesso.
   sb.auth.onAuthStateChange(function(event, session){
-    if (!session) { showLoginScreen(); return; }
-    if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
-    verificarAutorizacaoELogar(session);
+    if (session) { showApp(session); } else { showLoginScreen(); }
   });
 
   function showLoginScreen(){
