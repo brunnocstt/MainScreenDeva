@@ -1223,35 +1223,46 @@
   }
 
   // ---------------- HUB DE APPS ----------------
-  function renderAppGrid(uid){
-    var grid = document.getElementById('app-grid');
-    grid.innerHTML = APPS.map(function(app){ return appCardHtml(app, 'checando'); }).join('');
+  // Ordem dos cards: ativos primeiro, depois os demais (sem acesso/em breve
+  // juntos) -- dentro de cada grupo, ordem alfabética pelo nome exibido.
+  var ORDEM_GRUPO_STATUS = { active: 0, locked: 1, soon: 1 };
 
-    APPS.forEach(function(app, idx){
-      if (app.generico) {
-        // Apps do modelo novo: acesso é public.acessos_app por pessoa_id,
-        // não uma tabela de membros no schema do app.
-        sb.from('contas').select('pessoa_id').eq('id', uid).maybeSingle().then(function(cRes){
-          if (cRes.error || !cRes.data) { updateAppCard(idx, app, 'soon'); return; }
-          sb.from('acessos_app').select('nivel').eq('pessoa_id', cRes.data.pessoa_id).eq('app', app.id).maybeSingle().then(function(res){
-            if (res.error) { updateAppCard(idx, app, 'soon'); return; }
-            updateAppCard(idx, app, res.data ? 'active' : 'locked');
-          });
+  function statusDoApp(app, uid){
+    if (app.generico) {
+      // Apps do modelo novo: acesso é public.acessos_app por pessoa_id,
+      // não uma tabela de membros no schema do app.
+      return sb.from('contas').select('pessoa_id').eq('id', uid).maybeSingle().then(function(cRes){
+        if (cRes.error || !cRes.data) return 'soon';
+        return sb.from('acessos_app').select('nivel').eq('pessoa_id', cRes.data.pessoa_id).eq('app', app.id).maybeSingle().then(function(res){
+          if (res.error) return 'soon';
+          return res.data ? 'active' : 'locked';
         });
-        return;
-      }
-      if (!app.schema) { updateAppCard(idx, app, 'soon'); return; }
-      var colAtivo = app.activeCol || 'ativo';
-      sb.schema(app.schema).from(app.table).select(colAtivo).eq('id', uid).maybeSingle().then(function(res){
-        if (res.error) { updateAppCard(idx, app, 'soon'); return; }
-        if (!res.data) { updateAppCard(idx, app, 'locked'); return; }
-        updateAppCard(idx, app, res.data[colAtivo] === false ? 'locked' : 'active');
       });
+    }
+    if (!app.schema) return Promise.resolve('soon');
+    var colAtivo = app.activeCol || 'ativo';
+    return sb.schema(app.schema).from(app.table).select(colAtivo).eq('id', uid).maybeSingle().then(function(res){
+      if (res.error) return 'soon';
+      if (!res.data) return 'locked';
+      return res.data[colAtivo] === false ? 'locked' : 'active';
     });
   }
 
-  function appCardHtml(app, status){
-    return '<div class="app-card" id="app-card-' + app.id + '" data-status="' + status + '"></div>';
+  function renderAppGrid(uid){
+    var grid = document.getElementById('app-grid');
+    grid.innerHTML = APPS.map(function(app){ return cardCompletoHtml(app, 'checando'); }).join('');
+
+    Promise.all(APPS.map(function(app){
+      return statusDoApp(app, uid).then(function(status){ return { app: app, status: status }; });
+    })).then(function(resultados){
+      resultados.sort(function(a, b){
+        var ga = ORDEM_GRUPO_STATUS[a.status];
+        var gb = ORDEM_GRUPO_STATUS[b.status];
+        if (ga !== gb) return ga - gb;
+        return a.app.name.localeCompare(b.app.name, 'pt-BR');
+      });
+      grid.innerHTML = resultados.map(function(r){ return cardCompletoHtml(r.app, r.status); }).join('');
+    });
   }
 
   var statusMeta = {
@@ -1261,7 +1272,7 @@
     checando: { pill:'neutral', label:'Verificando' }
   };
 
-  function updateAppCard(idx, app, status){
+  function cardCompletoHtml(app, status){
     var meta = statusMeta[status];
     var muted = status !== 'active' ? ' is-muted' : '';
     var cta;
@@ -1273,16 +1284,14 @@
     } else {
       cta = '<button type="button" class="btn btn-outline-neutral btn-block" disabled>Em breve</button>';
     }
-    var el = document.getElementById('app-card-' + app.id);
-    if (!el) return;
-    el.className = 'app-card' + muted;
-    el.innerHTML =
+    return '<div class="app-card' + muted + '" id="app-card-' + app.id + '" data-status="' + status + '">' +
       '<div class="app-visual"><svg><use href="#' + app.icon + '"/></svg></div>' +
       '<div class="app-body">' +
         '<div class="app-top-row"><span class="app-name">' + app.name + '</span>' +
           '<span class="status-pill ' + meta.pill + '"><span class="dot"></span>' + meta.label + '</span></div>' +
         cta +
-      '</div>';
+      '</div>' +
+    '</div>';
   }
 
   // ---------------- GESTÃO DE USUÁRIOS ----------------
