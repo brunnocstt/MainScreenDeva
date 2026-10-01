@@ -881,6 +881,9 @@
       var info = valor ? ('len=' + valor.length + ' inicio=' + valor.slice(0,60)) : 'NULL';
       toast('[diag] getItem(sb-deva-auth) -> ' + info);
     }, 800);
+    setTimeout(function(){
+      toast('[diag] cookie cru (120 chars): ' + document.cookie.slice(0, 120));
+    }, 1300);
   })();
   var HUB_FN_URL = SUPABASE_URL + '/functions/v1/hub-manage-access';
   var HUB_FORGOT_FN_URL = SUPABASE_URL + '/functions/v1/hub-forgot-password';
