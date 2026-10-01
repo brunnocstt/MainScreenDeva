@@ -1173,6 +1173,7 @@
         var avatarUrl = null;
         var filialNome = '';
         var hubAdmin = false;
+        var papelHub = null;
         if (res.data) {
           // hub_admin é a flag antiga, mantida por compatibilidade; a fonte
           // de verdade agora é papel_hub -- qualquer um dos 4 papéis com
@@ -1182,6 +1183,10 @@
           // própria Edge Function).
           var PAPEIS_COM_GESTAO = ['proprietario', 'co_proprietario', 'admin_geral', 'admin_area'];
           hubAdmin = !!res.data.hub_admin || PAPEIS_COM_GESTAO.indexOf(res.data.papel_hub) !== -1;
+          // quem só tem a flag antiga (sem papel_hub de verdade) é tratado
+          // como admin_geral pra efeito de quais opções aparecem na tela --
+          // nunca ganha poder de Co-Proprietário só por causa da flag.
+          papelHub = res.data.papel_hub || (hubAdmin ? 'admin_geral' : null);
           if (res.data.pessoas) {
             pessoaNome = res.data.pessoas.nome || pessoaNome;
             pessoaId = res.data.pessoas.id;
@@ -1189,7 +1194,7 @@
             if (res.data.pessoas.filiais) filialNome = res.data.pessoas.filiais.nome || '';
           }
         }
-        estadoUsuario = { uid: uid, pessoaId: pessoaId, nome: pessoaNome, email: session.user.email, avatarUrl: avatarUrl, filialNome: filialNome, hubAdmin: hubAdmin };
+        estadoUsuario = { uid: uid, pessoaId: pessoaId, nome: pessoaNome, email: session.user.email, avatarUrl: avatarUrl, filialNome: filialNome, hubAdmin: hubAdmin, papelHub: papelHub };
 
         document.getElementById('user-name').textContent = pessoaNome;
         document.getElementById('user-sub').textContent = filialNome || session.user.email;
@@ -1478,6 +1483,40 @@
     return n ? n.label : (valor || 'Com acesso');
   }
 
+  // Mesma hierarquia de quem-pode-dar-o-que que a Edge Function aplica --
+  // duplicada aqui de propósito: o select só pode OFERECER o que a pessoa
+  // logada realmente tem poder de conceder. Confiar só na recusa do
+  // servidor deixa a opção visível pra quem não devia nem ver ela.
+  var PAPEL_HUB_LABELS = { '': 'Usuário', admin_area: 'Administrador de Área', admin_geral: 'Administrador Geral', co_proprietario: 'Co-Proprietário', proprietario: 'Proprietário' };
+  function labelPapelHub(valor){ return PAPEL_HUB_LABELS[valor || ''] || valor; }
+  // Mesma ideia, mas pro nível DENTRO de cada app (hoje só o TopDealer tem
+  // hierarquia própria de quem-concede-o-quê; os demais ainda não têm essa
+  // regra definida, então oferecem todos os níveis normalmente).
+  function opcoesNivelAppPara(appId, callerNivelNoApp, callerPapelHub){
+    var todas = APP_NIVEIS[appId] || [];
+    if (appId !== 'topdealer') return todas;
+    if (callerNivelNoApp === 'administrador') return todas;
+    if (callerNivelNoApp === 'admin_local') return todas.filter(function(n){ return n.value === 'usuario'; });
+    if (!callerNivelNoApp) {
+      if (callerPapelHub === 'proprietario' || callerPapelHub === 'co_proprietario') return todas;
+      return [];
+    }
+    return []; // 'usuario' dentro do TopDealer: não concede nada
+  }
+
+  function opcoesPapelHubPara(papelLogado){
+    var TODAS = [
+      { value: '', label: 'Usuário' },
+      { value: 'admin_area', label: 'Administrador de Área' },
+      { value: 'admin_geral', label: 'Administrador Geral' },
+      { value: 'co_proprietario', label: 'Co-Proprietário' }
+    ];
+    if (papelLogado === 'proprietario' || papelLogado === 'co_proprietario') return TODAS;
+    if (papelLogado === 'admin_geral') return TODAS.filter(function(o){ return o.value === '' || o.value === 'admin_area'; });
+    if (papelLogado === 'admin_area') return TODAS.filter(function(o){ return o.value === ''; });
+    return [];
+  }
+
   function abrirEdicao(pessoaId){
     var p = gestaoDados.pessoas.find(function(x){ return x.id === pessoaId; });
     if (!p) return;
@@ -1490,25 +1529,25 @@
     document.getElementById('edit-modal-email').textContent = p.email || 'sem e-mail cadastrado';
 
     var wrapPapel = document.getElementById('edit-modal-papel-hub-wrap');
+    var opcoesPapel = opcoesPapelHubPara(estadoUsuario.papelHub);
+    var valorAtual = conta ? (conta.papel_hub || '') : '';
     if (!conta) {
       wrapPapel.innerHTML = '<p class="modal-note" style="margin:0;">Sem login no Hub ainda -- conceda acesso a algum app primeiro.</p>';
     } else if (conta.papel_hub === 'proprietario') {
       wrapPapel.innerHTML = '<p class="modal-note" style="margin:0;">Proprietário -- não muda por aqui.</p>';
+    } else if (!opcoesPapel.some(function(o){ return o.value === valorAtual; })) {
+      // o alvo já está num papel que quem está logado não tem poder de
+      // mexer (ex: admin_area olhando alguém que por algum motivo já é
+      // admin_geral) -- mostra só leitura, nem oferece um select incompleto.
+      wrapPapel.innerHTML = '<p class="modal-note" style="margin:0;">' + escapeHtml(labelPapelHub(valorAtual)) + ' -- você não tem permissão pra alterar.</p>';
     } else {
-      if (!document.getElementById('edit-modal-papel-hub')) {
-        wrapPapel.innerHTML = '<select id="edit-modal-papel-hub" style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font-size:.9rem;">' +
-          '<option value="">Usuário</option>' +
-          '<option value="admin_area">Administrador de Área</option>' +
-          '<option value="admin_geral">Administrador Geral</option>' +
-          '<option value="co_proprietario">Co-Proprietário</option>' +
-          '</select>';
-      }
+      wrapPapel.innerHTML = '<select id="edit-modal-papel-hub" style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font-size:.9rem;">' +
+        opcoesPapel.map(function(o){ return '<option value="' + o.value + '">' + escapeHtml(o.label) + '</option>'; }).join('') +
+        '</select>';
       var selPapel = document.getElementById('edit-modal-papel-hub');
-      // atribuição direta (não addEventListener) -- idempotente, nunca
-      // duplica o handler mesmo chamando abrirEdicao() várias vezes.
       selPapel.onchange = salvarPapelHubHandler;
-      selPapel.value = conta.papel_hub || '';
-      selPapel.setAttribute('data-valor-anterior', conta.papel_hub || '');
+      selPapel.value = valorAtual;
+      selPapel.setAttribute('data-valor-anterior', valorAtual);
       selPapel.disabled = false;
     }
 
@@ -1680,10 +1719,26 @@
     var flag = document.getElementById('app-acesso-flag');
     flag.checked = !!acesso;
 
-    var niveis = APP_NIVEIS[appId] || [];
+    var callerNivelNoApp = ((gestaoDados.caller || {}).niveis_app || {})[appId] || null;
+    var niveis = opcoesNivelAppPara(appId, callerNivelNoApp, estadoUsuario.papelHub);
+    var alvoForaDoAlcance = acesso && !niveis.some(function(n){ return n.value === acesso.role; });
     var selNivel = document.getElementById('app-acesso-nivel');
-    selNivel.innerHTML = niveis.map(function(n){ return '<option value="' + n.value + '">' + escapeHtml(n.label) + '</option>'; }).join('');
-    selNivel.value = (acesso && niveis.some(function(n){ return n.value === acesso.role; })) ? acesso.role : (niveis[0] ? niveis[0].value : '');
+    var saveBtnApp = document.getElementById('app-acesso-modal-save');
+    if (!niveis.length || alvoForaDoAlcance) {
+      // sem poder de conceder NADA nesse app, ou a pessoa já está num nível
+      // que quem está logado não alcança (ex: admin_local olhando um
+      // administrador) -- nem mostra opção, trava o flag e o salvar em vez
+      // de deixar escolher e levar um 403 depois.
+      selNivel.innerHTML = '<option value="">' + (acesso ? escapeHtml(labelNivel(appId, acesso.role)) : '—') + '</option>';
+      flag.disabled = true;
+      saveBtnApp.disabled = true;
+      document.getElementById('app-acesso-modal-pessoa').textContent += ' — você não tem permissão pra gerenciar acesso a este app.';
+    } else {
+      flag.disabled = false;
+      saveBtnApp.disabled = false;
+      selNivel.innerHTML = niveis.map(function(n){ return '<option value="' + n.value + '">' + escapeHtml(n.label) + '</option>'; }).join('');
+      selNivel.value = (acesso && niveis.some(function(n){ return n.value === acesso.role; })) ? acesso.role : niveis[0].value;
+    }
 
     var wrapFiliaisBlock = document.getElementById('app-acesso-filiais-wrap');
     if (appId === 'topdealer') {
