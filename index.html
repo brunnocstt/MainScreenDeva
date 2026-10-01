@@ -995,6 +995,7 @@
         // ninguém -- cai no catch abaixo e segue mostrando o Hub com a
         // sessão que já tinha, pra uma instabilidade passageira na function
         // não derrubar todo mundo a cada F5.
+        toast('[diag] resolver-login status=' + (res.ok ? 'ok' : 'erro') + ' autorizado=' + res.data.autorizado + ' motivo=' + res.data.motivo);
         if (res.ok && res.data.autorizado === false) {
           negarAcesso('Você não possui acesso, contate o administrador do sistema.');
           return;
@@ -1002,6 +1003,7 @@
         showApp(session);
       })
       .catch(function(err){
+        toast('[diag] resolver-login FALHOU: ' + err.message);
         console.error('hub-resolver-login: falha técnica, seguindo com a sessão existente:', err);
         showApp(session);
       });
@@ -1082,6 +1084,7 @@
   // cookie) e SIGNED_IN (login de verdade, por senha ou Microsoft) passam
   // pela verificação de acesso.
   sb.auth.onAuthStateChange(function(event, session){
+    toast('[diag] evento=' + event + ' sessao=' + (session ? 'sim' : 'nao'));
     if (!session) { showLoginScreen(); return; }
     if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
     verificarAutorizacaoELogar(session);
