@@ -1772,17 +1772,23 @@
     var callerNivelNoApp = ((gestaoDados.caller || {}).niveis_app || {})[appId] || null;
     var niveis = opcoesNivelAppPara(appId, callerNivelNoApp, estadoUsuario.papelHub);
     var alvoForaDoAlcance = acesso && !niveis.some(function(n){ return n.value === acesso.role; });
+    // Teto de filial: quem não tem acesso total só libera acesso a pessoas
+    // das filiais em que ele mesmo tem acesso (null = sem restrição).
+    var escopoFil = (gestaoDados.caller || {}).filiais_escopo || null;
+    var filialAlvoForaDoEscopo = appId === 'topdealer' && !!escopoFil && !!p.filial_id && escopoFil.indexOf(p.filial_id) === -1;
     var selNivel = document.getElementById('app-acesso-nivel');
     var saveBtnApp = document.getElementById('app-acesso-modal-save');
-    if (!niveis.length || alvoForaDoAlcance) {
+    if (!niveis.length || alvoForaDoAlcance || filialAlvoForaDoEscopo) {
       // sem poder de conceder NADA nesse app, ou a pessoa já está num nível
-      // que quem está logado não alcança (ex: admin_local olhando um
-      // administrador) -- nem mostra opção, trava o flag e o salvar em vez
-      // de deixar escolher e levar um 403 depois.
+      // (ou numa filial) que quem está logado não alcança (ex: admin_local
+      // olhando um administrador) -- nem mostra opção, trava o flag e o
+      // salvar em vez de deixar escolher e levar um 403 depois.
       selNivel.innerHTML = '<option value="">' + (acesso ? escapeHtml(labelNivel(appId, acesso.role)) : '—') + '</option>';
       flag.disabled = true;
       saveBtnApp.disabled = true;
-      document.getElementById('app-acesso-modal-pessoa').textContent += ' — você não tem permissão pra gerenciar acesso a este app.';
+      document.getElementById('app-acesso-modal-pessoa').textContent += filialAlvoForaDoEscopo && niveis.length && !alvoForaDoAlcance
+        ? ' — essa pessoa é de uma filial (' + nomeFilial(p.filial_id) + ') em que você não tem acesso.'
+        : ' — você não tem permissão pra gerenciar acesso a este app.';
     } else {
       flag.disabled = false;
       saveBtnApp.disabled = false;
@@ -1799,9 +1805,13 @@
         .filter(function(af){ return af.pessoa_id === p.id; })
         .map(function(af){ return af.filial_id; }));
       var outrasFiliais = (gestaoDados.filiais || []).filter(function(f){ return f.id !== p.filial_id; });
+      // Filial fora do escopo do gestor fica desabilitada: ele não pode
+      // liberá-la (nem tirá-la, se a pessoa já tinha por outra via).
       document.getElementById('app-acesso-filiais').innerHTML = outrasFiliais.map(function(f){
-        return '<div class="app-check-row"><input type="checkbox" id="chk-aaf-' + f.id + '" data-filial-id="' + f.id + '"' +
-          (extrasAtuais.has(f.id) ? ' checked' : '') + '><label for="chk-aaf-' + f.id + '">' + escapeHtml(f.nome) + '</label></div>';
+        var semAcessoDoGestor = !!escopoFil && escopoFil.indexOf(f.id) === -1;
+        return '<div class="app-check-row"' + (semAcessoDoGestor ? ' style="opacity:.55;"' : '') + '><input type="checkbox" id="chk-aaf-' + f.id + '" data-filial-id="' + f.id + '"' +
+          (extrasAtuais.has(f.id) ? ' checked' : '') + (semAcessoDoGestor ? ' disabled' : '') + '><label for="chk-aaf-' + f.id + '">' + escapeHtml(f.nome) +
+          (semAcessoDoGestor ? ' <span style="font-size:.7rem;color:var(--muted-2);">(você não tem acesso a esta filial)</span>' : '') + '</label></div>';
       }).join('') || '<p class="modal-note" style="margin:0;">Não tem outra filial cadastrada.</p>';
     } else {
       wrapFiliaisBlock.hidden = true;
