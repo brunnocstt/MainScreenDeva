@@ -905,7 +905,7 @@
     { id:'padroes', icon:'i-clipboard', name:'Auditorias de Padrões',
       url:'https://padroesdeva.albusdata.com.br', schema:null },
     { id:'rh', icon:'i-users', name:'Gestão de RH',
-      url:'https://rhdeva.albusdata.com.br', schema:null }
+      url:'https://rhdeva.albusdata.com.br', schema:null, sempreVisivel:true }
   ];
 
   function escapeHtml(s){
@@ -1315,18 +1315,24 @@
 
   function renderAppGrid(uid){
     var grid = document.getElementById('app-grid');
-    grid.innerHTML = APPS.map(function(app){ return cardCompletoHtml(app, 'checando'); }).join('');
+    grid.innerHTML = '<p class="modal-note" style="grid-column:1/-1;">carregando seus aplicativos…</p>';
 
     Promise.all(APPS.map(function(app){
       return statusDoApp(app, uid).then(function(status){ return { app: app, status: status }; });
     })).then(function(resultados){
+      // Só aparece o que a pessoa realmente tem acesso (sem cards "Sem acesso" nem
+      // "Em breve"). Exceção: apps marcados sempreVisivel (o próximo a ser construído).
+      resultados = resultados.filter(function(r){ return r.status === 'active' || r.app.sempreVisivel; });
       resultados.sort(function(a, b){
         var ga = ORDEM_GRUPO_STATUS[a.status];
         var gb = ORDEM_GRUPO_STATUS[b.status];
         if (ga !== gb) return ga - gb;
         return a.app.name.localeCompare(b.app.name, 'pt-BR');
       });
-      grid.innerHTML = resultados.map(function(r){ return cardCompletoHtml(r.app, r.status); }).join('');
+      var semAcesso = !resultados.some(function(r){ return r.status === 'active'; });
+      grid.innerHTML = (semAcesso
+          ? '<p class="modal-note" style="grid-column:1/-1;">Você ainda não tem acesso a nenhum aplicativo. Fale com o administrador do Hub.</p>' : '') +
+        resultados.map(function(r){ return cardCompletoHtml(r.app, r.status); }).join('');
     });
   }
 
