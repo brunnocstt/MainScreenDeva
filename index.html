@@ -383,6 +383,7 @@
     <symbol id="i-grid" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></g></symbol>
     <symbol id="i-logout" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></g></symbol>
     <symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></g></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></g></symbol>
     <symbol id="i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></g></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></g></symbol>
     <symbol id="i-user-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 11 2 2 4-4"/><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></g></symbol>
@@ -499,6 +500,7 @@
           <div class="field-control">
             <svg class="leading" width="17" height="17"><use href="#i-lock"/></svg>
             <input id="forgot-pass" type="password" placeholder="Mínimo 8 caracteres" required>
+            <button type="button" class="eye-toggle" data-eye-target="forgot-pass" aria-label="Mostrar senha"><svg width="17" height="17"><use href="#i-eye"/></svg></button>
           </div>
         </div>
         <div class="field field-pass">
@@ -506,6 +508,7 @@
           <div class="field-control">
             <svg class="leading" width="17" height="17"><use href="#i-lock"/></svg>
             <input id="forgot-pass-confirm" type="password" placeholder="Repita a senha" required>
+            <button type="button" class="eye-toggle" data-eye-target="forgot-pass-confirm" aria-label="Mostrar senha"><svg width="17" height="17"><use href="#i-eye"/></svg></button>
           </div>
         </div>
         <button type="submit" class="btn btn-primary btn-block" id="forgot-newpass-submit">Salvar nova senha</button>
@@ -537,6 +540,7 @@
         <div class="field-control">
           <svg class="leading" width="17" height="17"><use href="#i-lock"/></svg>
           <input id="mustchange-pass" type="password" placeholder="Mínimo 8 caracteres" required>
+            <button type="button" class="eye-toggle" data-eye-target="mustchange-pass" aria-label="Mostrar senha"><svg width="17" height="17"><use href="#i-eye"/></svg></button>
         </div>
       </div>
       <div class="field field-pass">
@@ -544,6 +548,7 @@
         <div class="field-control">
           <svg class="leading" width="17" height="17"><use href="#i-lock"/></svg>
           <input id="mustchange-pass-confirm" type="password" placeholder="Repita a senha" required>
+            <button type="button" class="eye-toggle" data-eye-target="mustchange-pass-confirm" aria-label="Mostrar senha"><svg width="17" height="17"><use href="#i-eye"/></svg></button>
         </div>
       </div>
       <button type="submit" class="btn btn-primary btn-block" id="mustchange-submit">Definir senha</button>
@@ -968,6 +973,20 @@
     f.type = isPass ? 'text' : 'password';
   });
 
+  // Olhinho dos campos de nova senha (esqueci minha senha e troca
+  // obrigatória): cada botão aponta pro input que ele controla.
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest ? e.target.closest('.eye-toggle[data-eye-target]') : null;
+    if (!btn) return;
+    var input = document.getElementById(btn.getAttribute('data-eye-target'));
+    if (!input) return;
+    var mostrar = input.type === 'password';
+    input.type = mostrar ? 'text' : 'password';
+    btn.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
+    var use = btn.querySelector('use');
+    if (use) use.setAttribute('href', mostrar ? '#i-eye-off' : '#i-eye');
+  });
+
   document.getElementById('login-microsoft').addEventListener('click', function(){
     loginError.hidden = true;
     sb.auth.signInWithOAuth({
@@ -1127,11 +1146,22 @@
     var btn = document.getElementById('forgot-newpass-submit');
     btn.disabled = true; btn.textContent = 'Salvando…';
     chamarForgot({ action: 'set_new_password', email: forgotEmailAtual, code: forgotCodigoAtual, newPassword: p1 }).then(function(res){
-      btn.disabled = false; btn.textContent = 'Salvar nova senha';
-      if (!res.ok) { errEl.textContent = res.data.error || 'Não foi possível redefinir. Peça um novo código.'; errEl.hidden = false; return; }
+      if (!res.ok) {
+        btn.disabled = false; btn.textContent = 'Salvar nova senha';
+        errEl.textContent = res.data.error || 'Não foi possível redefinir. Peça um novo código.'; errEl.hidden = false;
+        return;
+      }
       document.getElementById('forgot-pass').value = '';
       document.getElementById('forgot-pass-confirm').value = '';
-      mostrarPassoForgot('done');
+      forgotCodigoAtual = '';
+      // Senha trocada: já entra direto no sistema com ela (o onAuthStateChange
+      // troca de tela sozinho). Só cai na tela "Senha redefinida" se esse
+      // login automático falhar -- a senha nova já está valendo de qualquer jeito.
+      btn.textContent = 'Entrando…';
+      sb.auth.signInWithPassword({ email: forgotEmailAtual, password: p1 }).then(function(login){
+        btn.disabled = false; btn.textContent = 'Salvar nova senha';
+        if (login.error) mostrarPassoForgot('done');
+      });
     });
   });
 
@@ -1147,17 +1177,21 @@
     if (p1 !== p2) { errEl.textContent = 'As senhas não coincidem.'; errEl.hidden = false; return; }
     var btn = document.getElementById('mustchange-submit');
     btn.disabled = true; btn.textContent = 'Salvando…';
-    sb.auth.updateUser({ password: p1 }).then(function(res){
-      if (res.error) {
+    // A troca da senha e a baixa da marca "trocar senha" acontecem juntas no
+    // servidor (o client não tem permissão de escrever em contas).
+    chamarOrganograma({ action: 'trocar_senha_obrigatoria', new_password: p1 }).then(function(res){
+      if (!res.ok) {
         btn.disabled = false; btn.textContent = 'Definir senha';
-        errEl.textContent = res.error.message || 'Erro ao salvar a senha.'; errEl.hidden = false;
+        errEl.textContent = res.data.error || 'Erro ao salvar a senha.'; errEl.hidden = false;
         return;
       }
-      sb.from('contas').update({ must_change_password: false }).eq('id', sessaoPendenteMustChange.user.id).then(function(){
-        document.getElementById('mustchange-pass').value = '';
-        document.getElementById('mustchange-pass-confirm').value = '';
+      document.getElementById('mustchange-pass').value = '';
+      document.getElementById('mustchange-pass-confirm').value = '';
+      // Entra de novo com a senha nova (sessão limpa); o onAuthStateChange
+      // leva direto pro Hub. Se esse login falhar, a senha já está trocada.
+      sb.auth.signInWithPassword({ email: sessaoPendenteMustChange.user.email, password: p1 }).then(function(login){
         btn.disabled = false; btn.textContent = 'Definir senha';
-        showApp(sessaoPendenteMustChange);
+        if (login.error) { sb.auth.signOut(); }
       });
     });
   });
