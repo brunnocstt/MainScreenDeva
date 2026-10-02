@@ -1798,6 +1798,18 @@
     while (pilha.length) { var a = pilha.pop(); if (out[a]) continue; out[a] = true; (filhos[a] || []).forEach(function(f){ pilha.push(f); }); }
     return out;
   }
+  // Gestores possíveis: todo mundo marcado como gestor (lista do servidor, independe do que o admin
+  // enxerga na tabela) + o próprio admin + o gestor atual. Nunca a própria pessoa nem quem está abaixo dela.
+  function gestoresDisponiveis(pessoaId, abaixo, gestorAtualId){
+    var lista = ((gestaoDados && gestaoDados.gestores) || []).slice();
+    var porId = {}; lista.forEach(function(g){ porId[g.id] = true; });
+    var extras = [estadoUsuario.pessoaId, gestorAtualId].filter(Boolean);
+    (gestaoDados.pessoas || []).forEach(function(x){
+      if (extras.indexOf(x.id) !== -1 && !porId[x.id] && !x.acesso_bloqueado) { lista.push(x); porId[x.id] = true; }
+    });
+    return lista.filter(function(g){ return g.id !== pessoaId && !(abaixo && abaixo[g.id]); })
+      .sort(function(a, b){ return a.nome.localeCompare(b.nome, 'pt-BR'); });
+  }
   function abrirEditarDados(pessoaId){
     var p = (gestaoDados.pessoas || []).find(function(x){ return x.id === pessoaId; });
     if (!p) return;
@@ -1816,13 +1828,7 @@
     selArea.value = atual;
     // Gestor: marcados como gestor (no que o admin enxerga) + ele mesmo + o gestor atual; nunca a própria pessoa nem quem está abaixo dela
     var abaixo = descendentesDe(pessoaId);
-    var abaixoDeMim2 = acessoTotal ? null : descendentesDe(estadoUsuario.pessoaId);
-    var gestores = (gestaoDados.pessoas || []).filter(function(g){
-      if (g.id === pessoaId || abaixo[g.id] || g.acesso_bloqueado) return false;
-      if (abaixoDeMim2 && g.id !== p.gestor_imediato_id && g.id !== estadoUsuario.pessoaId && !abaixoDeMim2[g.id]) return false; // Admin de Área: só a própria linha (mais o gestor atual, pra não perder o valor)
-      if (!acessoTotal && g.permissao_gestao && g.id !== p.gestor_imediato_id) return false;
-      return g.gestor || g.id === estadoUsuario.pessoaId || g.id === p.gestor_imediato_id;
-    }).sort(function(a, b){ return a.nome.localeCompare(b.nome, 'pt-BR'); });
+    var gestores = gestoresDisponiveis(pessoaId, abaixo, p.gestor_imediato_id);
     var selG = document.getElementById('dados-pessoa-gestor-imediato');
     selG.innerHTML = (acessoTotal ? '<option value="">Sem gestor (topo da hierarquia)</option>' : '') + gestores.map(function(g){
       return '<option value="' + g.id + '">' + escapeHtml(g.nome) + (g.cargo ? ' — ' + escapeHtml(capitalizarCargo(g.cargo)) : '') + '</option>';
@@ -1881,11 +1887,7 @@
     // Gestores: quem tem a marca "gestor" (dentro do que o caller enxerga) + o próprio caller.
     // Quem não tem acesso total só escolhe alguém da própria linha -- o servidor confere de novo.
     var acessoTotal = !!(dados.caller && dados.caller.acesso_total);
-    var abaixoDeMim = acessoTotal ? null : descendentesDe(estadoUsuario.pessoaId);
-    var gestores = (dados.pessoas || []).filter(function(g){
-      if (abaixoDeMim && g.id !== estadoUsuario.pessoaId && !abaixoDeMim[g.id]) return false; // Admin de Área: só a própria linha
-      return !g.acesso_bloqueado && !g.permissao_gestao && (g.gestor || g.id === estadoUsuario.pessoaId);
-    }).sort(function(a, b){ return a.nome.localeCompare(b.nome, 'pt-BR'); });
+    var gestores = gestoresDisponiveis(null);
     var selGestor = document.getElementById('add-pessoa-gestor-imediato');
     selGestor.innerHTML = (acessoTotal ? '<option value="">Sem gestor (topo da hierarquia)</option>' : '') + gestores.map(function(g){
       return '<option value="' + g.id + '">' + escapeHtml(g.nome) + (g.cargo ? ' — ' + escapeHtml(capitalizarCargo(g.cargo)) : '') + '</option>';
@@ -1908,7 +1910,7 @@
     document.getElementById('add-pessoa-area').innerHTML = carregando;
     addPessoaModal.hidden = false;
     // sempre garante os dados completos (filiais, áreas, níveis) antes de montar as listas
-    var completo = gestaoDados && gestaoDados.filiais && gestaoDados.filiais.length && gestaoDados.centros_custo && gestaoDados.caller;
+    var completo = gestaoDados && gestaoDados.filiais && gestaoDados.filiais.length && gestaoDados.centros_custo && gestaoDados.gestores && gestaoDados.caller;
     (completo ? Promise.resolve() : carregarGestaoUsuarios()).then(preencherFormAddPessoa).catch(preencherFormAddPessoa);
   }
   function fecharModalAddPessoa(){ addPessoaModal.hidden = true; }
