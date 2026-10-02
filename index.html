@@ -756,7 +756,7 @@
           <label style="display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:6px;">Papel funcional</label>
           <select id="app-acesso-pm-functional-role" style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font-size:.9rem;"></select>
         </div>
-        <div class="field" style="margin-bottom:14px;">
+        <div class="field" id="app-acesso-pm-team-wrap" hidden style="margin-bottom:14px;">
           <label style="display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:6px;">Equipe</label>
           <select id="app-acesso-pm-team" style="width:100%;padding:11px 13px;border-radius:var(--r-input);border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font-size:.9rem;"></select>
         </div>
@@ -1816,6 +1816,7 @@
       var selTeam = document.getElementById('app-acesso-pm-team');
       selTeam.innerHTML = PM_TEAMS.map(function(o){ return '<option value="' + o.value + '">' + escapeHtml(o.label) + '</option>'; }).join('');
       selTeam.value = (acesso && acesso.team) || '';
+      sincronizarEquipePm();
       var areasAtuais = new Set((acesso && acesso.business_area) || []);
       var todasAreas = gestaoDados.pm_business_areas || [];
       document.getElementById('app-acesso-pm-areas').innerHTML = todasAreas.map(function(a){
@@ -1836,6 +1837,13 @@
   document.getElementById('app-acesso-flag').addEventListener('change', function(e){
     document.getElementById('app-acesso-detalhes').hidden = !e.target.checked;
   });
+
+  // Equipe do PM só faz sentido pra quem é Desenvolvedor.
+  function sincronizarEquipePm(){
+    var ehDev = document.getElementById('app-acesso-pm-functional-role').value === 'desenvolvedor';
+    document.getElementById('app-acesso-pm-team-wrap').hidden = !ehDev;
+  }
+  document.getElementById('app-acesso-pm-functional-role').addEventListener('change', sincronizarEquipePm);
 
   document.getElementById('app-acesso-modal-save').addEventListener('click', function(){
     if (!appAcessoEmEdicao) return;
@@ -1879,7 +1887,11 @@
     }
     if (appId === 'pm') {
       body.functional_role = document.getElementById('app-acesso-pm-functional-role').value || null;
-      body.team = document.getElementById('app-acesso-pm-team').value || null;
+      // Equipe só é enviada pra Desenvolvedor; pros demais o campo some e a
+      // equipe já gravada (ex: gestor de BI/Marketing) fica como está.
+      if (body.functional_role === 'desenvolvedor') {
+        body.team = document.getElementById('app-acesso-pm-team').value || null;
+      }
       var areas = [];
       Array.prototype.forEach.call(document.querySelectorAll('#app-acesso-pm-areas input[type=checkbox]:checked'), function(chk){
         areas.push(chk.getAttribute('data-area-id'));
