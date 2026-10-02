@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://iueakatarwkvaoomhhah.supabase.co https://cloudflareinsights.com; img-src 'self' data: blob: https://iueakatarwkvaoomhhah.supabase.co; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; upgrade-insecure-requests;">
 <meta http-equiv="X-Frame-Options" content="DENY">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>Portal Deva</title>
+<title>Portal Estratégia de Negócio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1907,6 +1907,10 @@
       fecharAppAcessoModal();
       if (res.data.login_criado) {
         mostrarSenhaGerada(p.email, res.data.senha_temporaria, res.data.email_enviado !== false);
+      } else if (res.data.email_enviado === true) {
+        toast('Acesso atualizado. E-mail de aviso enviado para ' + p.email + '.');
+      } else if (res.data.email_enviado === false) {
+        toast('Acesso atualizado, mas não foi possível enviar o e-mail de aviso.');
       } else {
         toast('Acesso atualizado.');
       }
