@@ -810,6 +810,19 @@
       <select id="add-pessoa-area"></select>
     </div>
     <div class="field">
+      <label for="add-pessoa-gestor-imediato">Gestor imediato <span id="add-pessoa-gestor-obrig">*</span></label>
+      <select id="add-pessoa-gestor-imediato"></select>
+    </div>
+    <div class="field" style="display:flex;align-items:center;gap:8px;">
+      <input type="checkbox" id="add-pessoa-eh-gestor" style="width:auto;">
+      <label for="add-pessoa-eh-gestor" style="margin:0;">Esta pessoa é gestora (aparece na lista de gestores)</label>
+    </div>
+    <div class="field">
+      <label for="add-pessoa-papel">Nível de acesso no Hub *</label>
+      <select id="add-pessoa-papel"></select>
+      <p class="modal-note" style="margin:6px 0 0;">Vale quando o login for criado (ao conceder o primeiro app). Dá pra mudar depois pelo cadastro da pessoa.</p>
+    </div>
+    <div class="field">
       <label for="add-pessoa-matricula">Matrícula *</label>
       <input type="text" id="add-pessoa-matricula" inputmode="numeric" maxlength="6" placeholder="Só os últimos dígitos. Ex: 1234">
       <p class="modal-note" id="add-pessoa-matricula-final" style="margin:6px 0 0;">Digite de 1 a 6 dígitos — o sistema completa com o código da filial.</p>
@@ -1650,7 +1663,8 @@
     var opcoesPapel = opcoesPapelHubPara(estadoUsuario.papelHub);
     var valorAtual = conta ? (conta.papel_hub || '') : '';
     if (!conta) {
-      wrapPapel.innerHTML = '<p class="modal-note" style="margin:0;">Sem login no Hub ainda -- conceda acesso a algum app primeiro.</p>';
+      wrapPapel.innerHTML = '<p class="modal-note" style="margin:0;">Sem login no Hub ainda -- conceda acesso a algum app primeiro. ' +
+        'Nível definido no cadastro: <strong>' + escapeHtml(labelPapelHub(p.papel_hub_inicial || '')) + '</strong> (vale quando o login for criado).</p>';
     } else if (conta.papel_hub === 'proprietario') {
       wrapPapel.innerHTML = '<p class="modal-note" style="margin:0;">Proprietário -- não muda por aqui.</p>';
     } else if (!opcoesPapel.some(function(o){ return o.value === valorAtual; })) {
@@ -1731,27 +1745,56 @@
 
   // ---------------- MODAL: ADICIONAR PESSOA (cadastro no diretório, sem login) ----------------
   var addPessoaModal = document.getElementById('add-pessoa-modal');
+  function preencherFormAddPessoa(){
+    var selFilial = document.getElementById('add-pessoa-filial');
+    var selArea = document.getElementById('add-pessoa-area');
+    var selPapel = document.getElementById('add-pessoa-papel');
+    var dados = gestaoDados || {};
+    var esc = dados.caller && dados.caller.filiais_escopo;
+    var filiaisPermitidas = (dados.filiais || []).filter(function(f){
+      return !esc || esc.indexOf(f.id) !== -1; // gestor só cadastra nas filiais em que ele mesmo tem acesso
+    });
+    selFilial.innerHTML = (filiaisPermitidas.length
+      ? '<option value="">Selecione a filial</option>'
+      : '<option value="">Nenhuma filial disponível (recarregue a página)</option>') + filiaisPermitidas.map(function(f){
+      return '<option value="' + f.id + '">' + escapeHtml(f.nome) + '</option>';
+    }).join('');
+    var areas = dados.centros_custo || [];
+    selArea.innerHTML = areas.length
+      ? (areas.length === 1 ? '' : '<option value="">Selecione a área</option>') + areas.map(function(c){
+          return '<option value="' + escapeHtml(c) + '">' + escapeHtml(capitalizarCentroCusto(c)) + '</option>';
+        }).join('')
+      : '<option value="">' + (dados.caller && dados.caller.acesso_total ? 'Nenhuma área encontrada (recarregue a página)' : 'Sem área definida no seu cadastro') + '</option>';
+    // Gestores: quem tem a marca "gestor" (dentro do que o caller enxerga) + o próprio caller.
+    // Quem não tem acesso total só escolhe alguém da própria linha -- o servidor confere de novo.
+    var acessoTotal = !!(dados.caller && dados.caller.acesso_total);
+    var gestores = (dados.pessoas || []).filter(function(g){
+      return !g.acesso_bloqueado && !g.permissao_gestao && (g.gestor || g.id === estadoUsuario.pessoaId);
+    }).sort(function(a, b){ return a.nome.localeCompare(b.nome, 'pt-BR'); });
+    var selGestor = document.getElementById('add-pessoa-gestor-imediato');
+    selGestor.innerHTML = (acessoTotal ? '<option value="">Sem gestor (topo da hierarquia)</option>' : '') + gestores.map(function(g){
+      return '<option value="' + g.id + '">' + escapeHtml(g.nome) + (g.cargo ? ' — ' + escapeHtml(capitalizarCargo(g.cargo)) : '') + '</option>';
+    }).join('');
+    if (!acessoTotal) selGestor.value = estadoUsuario.pessoaId; // padrão: ele mesmo
+    document.getElementById('add-pessoa-gestor-obrig').hidden = acessoTotal;
+    document.getElementById('add-pessoa-eh-gestor').checked = false;
+    var papeis = opcoesPapelHubPara(estadoUsuario.papelHub);
+    selPapel.innerHTML = papeis.map(function(o){ return '<option value="' + o.value + '">' + escapeHtml(o.label) + '</option>'; }).join('');
+    selPapel.value = '';
+    atualizarMatriculaFinal();
+  }
   function abrirModalAddPessoa(){
     document.getElementById('add-pessoa-nome').value = '';
     document.getElementById('add-pessoa-email').value = '';
     document.getElementById('add-pessoa-cargo').value = '';
     document.getElementById('add-pessoa-matricula').value = '';
-    var selFilial = document.getElementById('add-pessoa-filial');
-    var filiaisPermitidas = (gestaoDados && gestaoDados.filiais || []).filter(function(f){
-      var esc = gestaoDados && gestaoDados.caller && gestaoDados.caller.filiais_escopo;
-      return !esc || esc.indexOf(f.id) !== -1; // gestor só cadastra nas filiais em que ele mesmo tem acesso
-    });
-    selFilial.innerHTML = '<option value="">Selecione a filial</option>' + filiaisPermitidas.map(function(f){
-      return '<option value="' + f.id + '">' + escapeHtml(f.nome) + '</option>';
-    }).join('');
-    var areas = (gestaoDados && gestaoDados.centros_custo) || [];
-    var selArea = document.getElementById('add-pessoa-area');
-    selArea.innerHTML = (areas.length === 1 ? '' : '<option value="">Selecione a área</option>') + areas.map(function(c){
-      return '<option value="' + escapeHtml(c) + '">' + escapeHtml(capitalizarCentroCusto(c)) + '</option>';
-    }).join('');
-    if (!areas.length) selArea.innerHTML = '<option value="">Sem área definida no seu cadastro</option>';
-    atualizarMatriculaFinal();
+    var carregando = '<option value="">carregando…</option>';
+    document.getElementById('add-pessoa-filial').innerHTML = carregando;
+    document.getElementById('add-pessoa-area').innerHTML = carregando;
     addPessoaModal.hidden = false;
+    // sempre garante os dados completos (filiais, áreas, níveis) antes de montar as listas
+    var completo = gestaoDados && gestaoDados.filiais && gestaoDados.filiais.length && gestaoDados.centros_custo && gestaoDados.caller;
+    (completo ? Promise.resolve() : carregarGestaoUsuarios()).then(preencherFormAddPessoa).catch(preencherFormAddPessoa);
   }
   function fecharModalAddPessoa(){ addPessoaModal.hidden = true; }
   document.getElementById('btn-add-pessoa').addEventListener('click', abrirModalAddPessoa);
@@ -1786,6 +1829,9 @@
     var matricula = document.getElementById('add-pessoa-matricula').value.trim();
     var filialId = document.getElementById('add-pessoa-filial').value;
     var area = document.getElementById('add-pessoa-area').value;
+    var papel = document.getElementById('add-pessoa-papel').value;
+    var gestorImediato = document.getElementById('add-pessoa-gestor-imediato').value;
+    var ehGestor = document.getElementById('add-pessoa-eh-gestor').checked;
 
     if (!nome || !email) { toast('Nome e e-mail são obrigatórios.'); return; }
     if (email.indexOf('@') === -1) { toast('E-mail inválido.'); return; }
@@ -1797,11 +1843,11 @@
     saveBtn.disabled = true;
     saveBtn.textContent = 'Salvando…';
     // Todas as regras (filial única, área, matrícula com código da filial) são aplicadas no servidor.
-    chamarHub({ action: 'criar_pessoa', nome: nome, email: email, cargo: cargo, matricula: matricula, filial_id: filialId, centro_custo: area }).then(function(res){
+    chamarHub({ action: 'criar_pessoa', nome: nome, email: email, cargo: cargo, matricula: matricula, filial_id: filialId, centro_custo: area, papel_hub: papel, gestor_imediato_id: gestorImediato, gestor: ehGestor }).then(function(res){
       saveBtn.disabled = false;
       saveBtn.textContent = 'Salvar';
       if (!res.ok) { toast('Erro ao adicionar: ' + (res.data.error || '')); return; }
-      toast('Pessoa adicionada (matrícula ' + res.data.matricula + '). Agora é só conceder o acesso pelo nome dela.');
+      toast('Pessoa adicionada (matrícula ' + res.data.matricula + '). Agora é só conceder o acesso a um app pelo nome dela — o nível no Hub já fica definido.');
       fecharModalAddPessoa();
       carregarGestaoUsuarios();
     });
