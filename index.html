@@ -1803,7 +1803,7 @@
   function gestoresDisponiveis(pessoaId, abaixo, gestorAtualId){
     var lista = ((gestaoDados && gestaoDados.gestores) || []).slice();
     var porId = {}; lista.forEach(function(g){ porId[g.id] = true; });
-    var extras = [estadoUsuario.pessoaId, gestorAtualId].filter(Boolean);
+    var extras = [gestorAtualId].filter(Boolean);
     (gestaoDados.pessoas || []).forEach(function(x){
       if (extras.indexOf(x.id) !== -1 && !porId[x.id] && !x.acesso_bloqueado) { lista.push(x); porId[x.id] = true; }
     });
@@ -1889,10 +1889,10 @@
     var acessoTotal = !!(dados.caller && dados.caller.acesso_total);
     var gestores = gestoresDisponiveis(null);
     var selGestor = document.getElementById('add-pessoa-gestor-imediato');
-    selGestor.innerHTML = (acessoTotal ? '<option value="">Sem gestor (topo da hierarquia)</option>' : '') + gestores.map(function(g){
+    selGestor.innerHTML = (acessoTotal ? '<option value="">Sem gestor (topo da hierarquia)</option>' : '<option value="">Selecione o gestor</option>') + gestores.map(function(g){
       return '<option value="' + g.id + '">' + escapeHtml(g.nome) + (g.cargo ? ' — ' + escapeHtml(capitalizarCargo(g.cargo)) : '') + '</option>';
     }).join('');
-    if (!acessoTotal) selGestor.value = estadoUsuario.pessoaId; // padrão: ele mesmo
+    selGestor.value = '';
     document.getElementById('add-pessoa-gestor-obrig').hidden = acessoTotal;
     document.getElementById('add-pessoa-eh-gestor').checked = false;
     var papeis = opcoesPapelHubPara(estadoUsuario.papelHub);
@@ -1954,6 +1954,7 @@
     if (email.indexOf('@') === -1) { toast('E-mail inválido.'); return; }
     if (!filialId) { toast('Selecione a filial.'); return; }
     if (!area) { toast('Selecione a área.'); return; }
+    if (!gestorImediato && !(gestaoDados.caller && gestaoDados.caller.acesso_total)) { toast('Selecione o gestor imediato.'); return; }
     if (!/^\d{1,6}$/.test(matricula)) { toast('A matrícula deve ter de 1 a 6 dígitos (só números).'); return; }
 
     var saveBtn = document.getElementById('add-pessoa-save');
