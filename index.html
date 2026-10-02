@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://iueakatarwkvaoomhhah.supabase.co https://cloudflareinsights.com; img-src 'self' data: blob:; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; upgrade-insecure-requests;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://iueakatarwkvaoomhhah.supabase.co https://cloudflareinsights.com; img-src 'self' data: blob: https://iueakatarwkvaoomhhah.supabase.co; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; upgrade-insecure-requests;">
 <meta http-equiv="X-Frame-Options" content="DENY">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Portal Deva</title>
@@ -919,16 +919,23 @@
   }
   // Mesmo elemento .avatar serve pra foto de verdade ou iniciais+cor -- só
   // troca o conteúdo/estilo conforme tiver avatarUrl ou não.
+  // Iniciais + cor sempre entram primeiro (base e fallback); a foto só
+  // substitui depois de carregar de verdade -- se falhar (bloqueio de CSP,
+  // URL quebrada, rede), o avatar continua visível em vez de sumir.
   function aplicarAvatar(el, nome, avatarUrl){
     if (!el) return;
-    if (avatarUrl) {
+    var seq = el._avatarSeq = (el._avatarSeq || 0) + 1;
+    el.style.backgroundImage = 'none';
+    el.textContent = iniciais(nome);
+    el.style.background = corAvatar(nome);
+    if (!avatarUrl) return;
+    var img = new Image();
+    img.onload = function(){
+      if (el._avatarSeq !== seq) return;
       el.textContent = '';
-      el.style.background = 'url(' + avatarUrl + ') center/cover no-repeat';
-    } else {
-      el.style.backgroundImage = 'none';
-      el.textContent = iniciais(nome);
-      el.style.background = corAvatar(nome);
-    }
+      el.style.background = 'url("' + avatarUrl + '") center/cover no-repeat';
+    };
+    img.src = avatarUrl;
   }
   function toast(msg){
     var el = document.createElement('div');
