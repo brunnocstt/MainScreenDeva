@@ -290,7 +290,7 @@
   .gestao-actions button:disabled:hover{ background:none; }
   .gestao-table-foot{ padding:10px 16px; border-top:1px solid var(--line-soft); font-size:.76rem; color:var(--muted-2); font-weight:500; }
 
-  .badge-bloqueado{ display:inline-flex; align-items:center; gap:4px; font-size:.65rem; font-weight:700; color:#B91C1C; background:#FEF2F2; border-radius:999px; padding:3px 9px; }
+  .badge-inativo{ display:inline-flex; align-items:center; gap:4px; font-size:.65rem; font-weight:700; color:#B91C1C; background:#FEF2F2; border-radius:999px; padding:3px 9px; }
 
   .filial-tooltip{ position:fixed; z-index:400; background:var(--surface); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow-lift); padding:10px 12px; min-width:160px; max-width:260px; pointer-events:none; opacity:0; transform:translateY(-4px); transition:opacity .12s ease, transform .12s ease; }
   .filial-tooltip.is-visible{ opacity:1; transform:translateY(0); }
@@ -1441,7 +1441,7 @@
     var wrap = document.getElementById('gestao-tabs');
     wrap.innerHTML =
       '<button type="button" class="gestao-tab' + (estadoGestao.aba === 'ativos' ? ' is-active' : '') + '" data-aba="ativos">Ativos (' + ativos.length + ')</button>' +
-      (inativos.length ? '<button type="button" class="gestao-tab inativos' + (estadoGestao.aba === 'inativos' ? ' is-active' : '') + '" data-aba="inativos">Bloqueados (' + inativos.length + ')</button>' : '');
+      (inativos.length ? '<button type="button" class="gestao-tab inativos' + (estadoGestao.aba === 'inativos' ? ' is-active' : '') + '" data-aba="inativos">Inativos (' + inativos.length + ')</button>' : '');
     Array.prototype.forEach.call(wrap.querySelectorAll('.gestao-tab'), function(btn){
       btn.addEventListener('click', function(){ estadoGestao.aba = btn.getAttribute('data-aba'); renderGestao(); });
     });
@@ -1491,7 +1491,7 @@
     if (p.acesso_bloqueado) {
       acoesHtml += '<button class="good" data-action="reativar_pessoa" data-pessoa="' + p.id + '" title="Reativar"><svg width="13" height="13"><use href="#i-power"/></svg></button>';
     } else {
-      acoesHtml += '<button class="danger" data-action="desativar_pessoa" data-pessoa="' + p.id + '" title="Bloquear e apagar login em todas as apps"><svg width="13" height="13"><use href="#i-power"/></svg></button>';
+      acoesHtml += '<button class="danger" data-action="desativar_pessoa" data-pessoa="' + p.id + '" title="Inativar (desligado) e apagar login em todas as apps"><svg width="13" height="13"><use href="#i-power"/></svg></button>';
     }
 
     return '<tr>' +
@@ -1519,10 +1519,10 @@
       return;
     }
     if (action === 'desativar_pessoa') {
-      if (!confirm('Bloquear essa pessoa e apagar o login dela em TODAS as apps? Essa ação é imediata.')) return;
+      if (!confirm('Inativar essa pessoa (desligamento) e apagar o login dela em TODAS as apps? Essa ação é imediata.')) return;
       chamarHub({ action: 'desativar_pessoa', pessoa_id: ds.pessoa }).then(function(res){
         if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
-        toast('Pessoa bloqueada e login removido.');
+        toast('Pessoa inativada e login removido.');
         carregarGestaoUsuarios();
       });
       return;
@@ -1530,7 +1530,7 @@
     if (action === 'reativar_pessoa') {
       chamarHub({ action: 'reativar_pessoa', pessoa_id: ds.pessoa }).then(function(res){
         if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
-        toast('Pessoa desbloqueada.');
+        toast('Pessoa reativada.');
         carregarGestaoUsuarios();
       });
       return;
@@ -1647,7 +1647,7 @@
     if (!p.email) {
       nota.textContent = 'Essa pessoa não tem e-mail cadastrado -- não é possível conceder acesso a nenhum app até isso ser corrigido.';
     } else if (p.acesso_bloqueado) {
-      nota.textContent = 'Essa pessoa está bloqueada -- reative antes de conceder acesso.';
+      nota.textContent = 'Essa pessoa está inativa -- reative antes de conceder acesso.';
     } else {
       nota.textContent = 'Clique num app pra ver ou mudar o acesso dessa pessoa a ele -- nível e filial são configurados por dentro de cada app, não aqui.';
     }
