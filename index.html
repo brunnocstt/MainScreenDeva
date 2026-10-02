@@ -278,6 +278,8 @@
   table.pessoas tbody td{ padding:10px 12px; color:var(--ink-soft); vertical-align:middle; overflow:hidden; }
   .gestao-user{ display:flex; align-items:center; gap:8px; min-width:0; cursor:pointer; }
   .gestao-user:hover .name{ color:var(--accent); text-decoration:underline; }
+  .gestao-user.somente-leitura{ cursor:default; }
+  .gestao-user.somente-leitura:hover .name{ color:var(--ink); text-decoration:none; }
   .gestao-user .name{ font-size:.83rem; font-weight:700; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .gestao-user .email{ font-size:.71rem; color:var(--muted-2); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .gestao-cargo{ font-size:.76rem; color:var(--muted); line-height:1.35; }
@@ -1459,6 +1461,7 @@
     // nome da pessoa é clicável (abre a edição) -- Enter/Espaço também, pra teclado
     Array.prototype.forEach.call(tbody.querySelectorAll('.gestao-user'), function(el){
       el.addEventListener('keydown', function(e){
+        if (el.classList.contains('somente-leitura')) return;
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAcao('editar', el.dataset); }
       });
     });
@@ -1488,14 +1491,18 @@
     var acoesHtml = '';
     var podeResetar = !!conta && !!p.email;
     acoesHtml += '<button data-action="resetar_senha" data-conta="' + (conta ? conta.id : '') + '" data-email="' + escapeHtml(p.email || '') + '" data-nome="' + escapeHtml(p.nome) + '" title="' + (podeResetar ? 'Redefinir senha' : 'Sem login ainda') + '"' + (podeResetar ? '' : ' disabled') + '><svg width="13" height="13"><use href="#i-key"/></svg></button>';
-    if (p.acesso_bloqueado) {
+    // permissao_gestao (só admin de área): 'resetar' = chefe (só visualiza e pode redefinir senha); 'ver' = só visualização
+    var perm = p.permissao_gestao || '';
+    if (perm === 'ver') acoesHtml = '';
+    else if (perm === 'resetar') { /* só o botão de redefinir senha */ }
+    else if (p.acesso_bloqueado) {
       acoesHtml += '<button class="good" data-action="reativar_pessoa" data-pessoa="' + p.id + '" title="Reativar"><svg width="13" height="13"><use href="#i-power"/></svg></button>';
     } else {
       acoesHtml += '<button class="danger" data-action="desativar_pessoa" data-pessoa="' + p.id + '" title="Inativar (desligado) e apagar login em todas as apps"><svg width="13" height="13"><use href="#i-power"/></svg></button>';
     }
 
     return '<tr>' +
-      '<td><div class="gestao-user" data-action="editar" data-pessoa="' + p.id + '" role="button" tabindex="0" title="Editar acesso">' +
+      '<td><div class="gestao-user' + (perm ? ' somente-leitura" title="Somente visualização' : '" data-action="editar" data-pessoa="' + p.id + '" role="button" tabindex="0" title="Editar acesso') + '">' +
         avatarSpanHtml(p, 'width:32px;height:32px;font-size:.7rem;') +
         '<div><div class="name">' + escapeHtml(p.nome) + '</div><div class="email">' + email + '</div></div>' +
       '</div></td>' +
@@ -1514,6 +1521,13 @@
       if (!confirm('Gerar uma nova senha temporária para ' + ds.nome + ' e enviar por e-mail (' + ds.email + ')?')) return;
       chamarHub({ action: 'resetar_senha', conta_id: ds.conta }).then(function(res){
         if (!res.ok) { toast('Erro: ' + (res.data.error || '')); return; }
+        if (!res.data.senha_temporaria) {
+          // colega/chefe: a senha NÃO aparece na tela, só vai por e-mail pra própria pessoa
+          toast(res.data.email_enviado !== false
+            ? 'Senha temporária enviada por e-mail para ' + res.data.email + '.'
+            : 'Não foi possível enviar o e-mail. A pessoa pode usar "Esqueci minha senha" na tela de login.');
+          return;
+        }
         mostrarSenhaGerada(res.data.email, res.data.senha_temporaria, res.data.email_enviado !== false);
       });
       return;
