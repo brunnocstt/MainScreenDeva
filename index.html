@@ -802,12 +802,18 @@
       <input type="text" id="add-pessoa-cargo" placeholder="Ex: Coordenadora de Treinamentos">
     </div>
     <div class="field">
-      <label for="add-pessoa-matricula">Matrícula <span style="font-weight:400;color:var(--muted-2);">(deixe em branco se não tiver)</span></label>
-      <input type="text" id="add-pessoa-matricula" placeholder="Ex: 1234">
+      <label for="add-pessoa-filial">Filial *</label>
+      <select id="add-pessoa-filial"></select>
     </div>
-    <div class="modal-section-label">Filiais *</div>
-    <p class="modal-note" style="margin:0 0 8px;">Marque uma, duas, três ou quantas precisar.</p>
-    <div id="add-pessoa-filiais" class="filiais-wrap" style="display:flex;flex-direction:column;gap:2px;margin-bottom:8px;"></div>
+    <div class="field">
+      <label for="add-pessoa-area">Área (centro de custo) *</label>
+      <select id="add-pessoa-area"></select>
+    </div>
+    <div class="field">
+      <label for="add-pessoa-matricula">Matrícula *</label>
+      <input type="text" id="add-pessoa-matricula" inputmode="numeric" maxlength="6" placeholder="Só os últimos dígitos. Ex: 1234">
+      <p class="modal-note" id="add-pessoa-matricula-final" style="margin:6px 0 0;">Digite de 1 a 6 dígitos — o sistema completa com o código da filial.</p>
+    </div>
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost" id="add-pessoa-cancel">Cancelar</button>
       <button type="button" class="btn btn-primary" id="add-pessoa-save">Salvar</button>
@@ -1730,11 +1736,21 @@
     document.getElementById('add-pessoa-email').value = '';
     document.getElementById('add-pessoa-cargo').value = '';
     document.getElementById('add-pessoa-matricula').value = '';
-    var wrapFiliaisAdd = document.getElementById('add-pessoa-filiais');
-    wrapFiliaisAdd.innerHTML = (gestaoDados && gestaoDados.filiais || []).map(function(f){
-      return '<div class="app-check-row"><input type="checkbox" id="chk-add-filial-' + f.id + '" data-filial-id="' + f.id + '">' +
-        '<label for="chk-add-filial-' + f.id + '">' + escapeHtml(f.nome) + '</label></div>';
-    }).join('') || '<p class="modal-note" style="margin:0;">Nenhuma filial cadastrada.</p>';
+    var selFilial = document.getElementById('add-pessoa-filial');
+    var filiaisPermitidas = (gestaoDados && gestaoDados.filiais || []).filter(function(f){
+      var esc = gestaoDados && gestaoDados.caller && gestaoDados.caller.filiais_escopo;
+      return !esc || esc.indexOf(f.id) !== -1; // gestor só cadastra nas filiais em que ele mesmo tem acesso
+    });
+    selFilial.innerHTML = '<option value="">Selecione a filial</option>' + filiaisPermitidas.map(function(f){
+      return '<option value="' + f.id + '">' + escapeHtml(f.nome) + '</option>';
+    }).join('');
+    var areas = (gestaoDados && gestaoDados.centros_custo) || [];
+    var selArea = document.getElementById('add-pessoa-area');
+    selArea.innerHTML = (areas.length === 1 ? '' : '<option value="">Selecione a área</option>') + areas.map(function(c){
+      return '<option value="' + escapeHtml(c) + '">' + escapeHtml(capitalizarCentroCusto(c)) + '</option>';
+    }).join('');
+    if (!areas.length) selArea.innerHTML = '<option value="">Sem área definida no seu cadastro</option>';
+    atualizarMatriculaFinal();
     addPessoaModal.hidden = false;
   }
   function fecharModalAddPessoa(){ addPessoaModal.hidden = true; }
@@ -1743,56 +1759,51 @@
   document.getElementById('add-pessoa-cancel').addEventListener('click', fecharModalAddPessoa);
   addPessoaModal.addEventListener('click', function(e){ if (e.target === addPessoaModal) fecharModalAddPessoa(); });
 
+  // Matrícula final = código da filial (6 dígitos) + o que a pessoa digitou (completado com zeros).
+  function matriculaCompleta(filialId, digitos){
+    var f = (gestaoDados && gestaoDados.filiais || []).find(function(x){ return x.id === filialId; });
+    if (!f || !/^\d{1,6}$/.test(digitos)) return null;
+    return String(f.codigo).replace(/\D/g, '').padStart(6, '0') + digitos.padStart(6, '0');
+  }
+  function atualizarMatriculaFinal(){
+    var el = document.getElementById('add-pessoa-matricula-final');
+    var digitos = document.getElementById('add-pessoa-matricula').value.trim();
+    var fil = document.getElementById('add-pessoa-filial').value;
+    var final = matriculaCompleta(fil, digitos);
+    el.textContent = final ? 'Matrícula que será cadastrada: ' + final
+      : (fil ? 'Digite de 1 a 6 dígitos — o sistema completa com o código da filial.' : 'Selecione a filial e digite de 1 a 6 dígitos da matrícula.');
+  }
+  document.getElementById('add-pessoa-matricula').addEventListener('input', function(){
+    this.value = this.value.replace(/\D/g, '').slice(0, 6);
+    atualizarMatriculaFinal();
+  });
+  document.getElementById('add-pessoa-filial').addEventListener('change', atualizarMatriculaFinal);
+
   document.getElementById('add-pessoa-save').addEventListener('click', function(){
     var nome = document.getElementById('add-pessoa-nome').value.trim();
     var email = document.getElementById('add-pessoa-email').value.trim().toLowerCase();
     var cargo = document.getElementById('add-pessoa-cargo').value.trim();
     var matricula = document.getElementById('add-pessoa-matricula').value.trim();
-    var filialIds = [];
-    Array.prototype.forEach.call(document.querySelectorAll('#add-pessoa-filiais input[type=checkbox]:checked'), function(chk){
-      filialIds.push(chk.getAttribute('data-filial-id'));
-    });
+    var filialId = document.getElementById('add-pessoa-filial').value;
+    var area = document.getElementById('add-pessoa-area').value;
 
     if (!nome || !email) { toast('Nome e e-mail são obrigatórios.'); return; }
     if (email.indexOf('@') === -1) { toast('E-mail inválido.'); return; }
-    if (!filialIds.length) { toast('Selecione ao menos uma filial.'); return; }
-    if (!matricula) matricula = 'M' + Date.now().toString(36).toUpperCase();
+    if (!filialId) { toast('Selecione a filial.'); return; }
+    if (!area) { toast('Selecione a área.'); return; }
+    if (!/^\d{1,6}$/.test(matricula)) { toast('A matrícula deve ter de 1 a 6 dígitos (só números).'); return; }
 
     var saveBtn = document.getElementById('add-pessoa-save');
     saveBtn.disabled = true;
     saveBtn.textContent = 'Salvando…';
-
-    sb.from('pessoas').select('id, nome').eq('email', email).maybeSingle().then(function(res){
-      if (res.data) {
-        toast('Já existe "' + res.data.nome + '" cadastrado com esse e-mail.');
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Salvar';
-        return;
-      }
-      // pessoas.filial_id é a filial "principal" (coluna legada, obrigatória) --
-      // a primeira marcada. O acesso multi-filial de fato mora em
-      // pessoa_filiais, então grava lá TODAS as marcadas (inclusive a primeira).
-      sb.from('pessoas').insert({ nome: nome, email: email, cargo: cargo || null, matricula: matricula, filial_id: filialIds[0], ativo: true })
-        .select('id').single().then(function(res2){
-        if (res2.error) {
-          saveBtn.disabled = false;
-          saveBtn.textContent = 'Salvar';
-          var msg = res2.error.message.indexOf('pessoas_filial_id_matricula_key') !== -1
-            ? 'Já existe alguém com essa matrícula nessa filial. Troque a matrícula.'
-            : res2.error.message;
-          toast('Erro ao adicionar: ' + msg);
-          return;
-        }
-        var pessoaId = res2.data.id;
-        sb.from('pessoa_filiais').insert(filialIds.map(function(fid){ return { pessoa_id: pessoaId, filial_id: fid }; })).then(function(res3){
-          saveBtn.disabled = false;
-          saveBtn.textContent = 'Salvar';
-          if (res3.error) { toast('Pessoa criada, mas houve erro ao salvar filiais: ' + res3.error.message); }
-          else { toast('Pessoa adicionada ao diretório. Agora é só conceder o acesso pelo "Editar acesso".'); }
-          fecharModalAddPessoa();
-          carregarGestaoUsuarios();
-        });
-      });
+    // Todas as regras (filial única, área, matrícula com código da filial) são aplicadas no servidor.
+    chamarHub({ action: 'criar_pessoa', nome: nome, email: email, cargo: cargo, matricula: matricula, filial_id: filialId, centro_custo: area }).then(function(res){
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Salvar';
+      if (!res.ok) { toast('Erro ao adicionar: ' + (res.data.error || '')); return; }
+      toast('Pessoa adicionada (matrícula ' + res.data.matricula + '). Agora é só conceder o acesso pelo nome dela.');
+      fecharModalAddPessoa();
+      carregarGestaoUsuarios();
     });
   });
 
