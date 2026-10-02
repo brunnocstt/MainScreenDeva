@@ -79,7 +79,7 @@
   /* a altura vem da própria tela do modal (overlay = área visível, com 20px de respiro), não de 100vh --
      100vh pode ser maior que a janela de verdade e o final do conteúdo ficava cortado. */
   .modal-card{ width:100%; max-width:420px; max-height:100%; display:flex; flex-direction:column; background:var(--surface); border-radius:32px; box-shadow:var(--shadow-lift); overflow:hidden; }
-  .modal-card-scroll{ flex:1 1 auto; min-height:0; overflow-y:auto; padding:24px; scrollbar-width:thin; scrollbar-color:var(--line-soft) transparent; }
+  .modal-card-scroll{ flex:1 1 auto; min-height:0; overflow-y:auto; margin:24px 0; padding:0 24px; scrollbar-width:thin; scrollbar-color:var(--line-soft) transparent; }
   .modal-card-scroll::-webkit-scrollbar{ width:9px; }
   .modal-card-scroll::-webkit-scrollbar-track{ background:transparent; }
   .modal-card-scroll::-webkit-scrollbar-thumb{ background-color:var(--line-soft); border-radius:999px; border:2.5px solid var(--surface); background-clip:padding-box; }
