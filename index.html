@@ -132,7 +132,7 @@
   .menu-toggle:hover{ background:var(--sidebar-hover); color:#fff; }
   .sidebar-logo{ margin-left:14px; overflow:hidden; white-space:nowrap; opacity:0; transition:opacity .18s ease; }
   .is-expanded .sidebar-logo{ opacity:1; }
-  .sidebar-logo svg{ width:110px; height:auto; color:#fff; }
+  .sidebar-logo svg{ width:160px; height:auto; color:#fff; }
   .side-nav{ flex:1; padding-top:12px; padding-bottom:8px; overflow-y:auto; overflow-x:hidden; }
   .nav-btn{ all:unset; box-sizing:border-box; width:100%; display:block; height:40px; padding-left:52px; padding-right:10px; border-radius:14px; cursor:pointer; text-align:left; position:relative; font-size:13px; font-weight:500; margin-bottom:2px; line-height:40px; white-space:nowrap; overflow:hidden; color:var(--sidebar-text); background:transparent; transition:background .15s, color .15s; }
   .nav-btn:hover{ background:var(--sidebar-hover); color:var(--sidebar-text-hover); }
@@ -147,8 +147,8 @@
   .user-footer{ padding:8px; border-top:1px solid var(--sidebar-line); position:relative; flex-shrink:0; }
   .user-footer-btn{ all:unset; box-sizing:border-box; width:100%; height:46px; position:relative; border-radius:14px; cursor:pointer; background:transparent; }
   .user-footer-btn.is-open{ background:var(--sidebar-hover); }
-  .user-footer-avatar{ position:absolute; left:6px; top:50%; transform:translateY(-50%); }
-  .user-footer-text{ position:absolute; left:44px; right:8px; top:50%; transform:translateY(-50%); min-width:0; text-align:left; opacity:0; transition:opacity .18s ease; }
+  .user-footer-avatar{ position:absolute; left:3px; top:50%; transform:translateY(-50%); }
+  .user-footer-text{ position:absolute; left:46px; right:8px; top:50%; transform:translateY(-50%); min-width:0; text-align:left; opacity:0; transition:opacity .18s ease; }
   .is-expanded .user-footer-text{ opacity:1; }
   .user-footer-text .name{ font-size:12.5px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .user-footer-text .sub{ font-size:10.5px; color:var(--sidebar-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
@@ -590,7 +590,7 @@
     </nav>
     <div class="user-footer">
       <button class="user-footer-btn" id="user-footer-btn">
-        <span class="user-footer-avatar avatar" id="user-avatar" style="width:30px;height:30px;font-size:.7rem"></span>
+        <span class="user-footer-avatar avatar" id="user-avatar" style="width:34px;height:34px;font-size:.78rem"></span>
         <span class="user-footer-text">
           <span class="name" id="user-name"></span>
           <span class="sub" id="user-sub"></span>
@@ -795,6 +795,36 @@
 <!-- modal: adicionar pessoa nova ao diretório (RH ainda não sincronizou, ou é
      terceirizado). Só cadastra nome/e-mail/cargo/filial -- não cria login;
      pra dar acesso, depois de salvar aqui, usa o "Editar acesso" normal. -->
+<div class="modal-overlay" id="dados-pessoa-modal" hidden>
+  <div class="modal-card">
+   <div class="modal-card-scroll">
+    <div class="modal-head"><h2>Editar dados</h2><button type="button" class="modal-close" id="dados-pessoa-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <p class="modal-note" id="dados-pessoa-nome" style="font-weight:700;color:var(--ink);"></p>
+    <p class="modal-note">Dados cadastrais da pessoa. O acesso aos apps é gerenciado clicando no nome dela.</p>
+    <div class="field">
+      <label for="dados-pessoa-cargo">Cargo</label>
+      <input type="text" id="dados-pessoa-cargo" placeholder="Ex: Coordenadora de Treinamentos">
+    </div>
+    <div class="field">
+      <label for="dados-pessoa-area">Área (centro de custo) *</label>
+      <select id="dados-pessoa-area"></select>
+    </div>
+    <div class="field">
+      <label for="dados-pessoa-gestor-imediato">Gestor imediato <span id="dados-pessoa-gestor-obrig">*</span></label>
+      <select id="dados-pessoa-gestor-imediato"></select>
+    </div>
+    <div class="field" style="display:flex;align-items:center;gap:8px;">
+      <input type="checkbox" id="dados-pessoa-eh-gestor" style="width:auto;">
+      <label for="dados-pessoa-eh-gestor" style="margin:0;">Esta pessoa é gestora (aparece na lista de gestores)</label>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="dados-pessoa-cancel">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="dados-pessoa-save">Salvar</button>
+    </div>
+   </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="add-pessoa-modal" hidden>
   <div class="modal-card">
    <div class="modal-card-scroll">
@@ -1525,6 +1555,9 @@
     var centroCell = celula(p.centro_custo ? capitalizarCentroCusto(p.centro_custo) : '');
 
     var acoesHtml = '';
+    if (!p.permissao_gestao) {
+      acoesHtml += '<button data-action="editar_dados" data-pessoa="' + p.id + '" title="Editar dados (cargo, área, gestor)"><svg width="13" height="13"><use href="#i-pencil"/></svg></button>';
+    }
     var podeResetar = !!conta && !!p.email;
     acoesHtml += '<button data-action="resetar_senha" data-conta="' + (conta ? conta.id : '') + '" data-email="' + escapeHtml(p.email || '') + '" data-nome="' + escapeHtml(p.nome) + '" title="' + (podeResetar ? 'Redefinir senha' : 'Sem login ainda') + '"' + (podeResetar ? '' : ' disabled') + '><svg width="13" height="13"><use href="#i-key"/></svg></button>';
     // permissao_gestao (só admin de área): 'resetar' = chefe (só visualiza e pode redefinir senha); 'ver' = só visualização
@@ -1552,6 +1585,7 @@
 
   function onAcao(action, ds){
     if (action === 'editar') { abrirEdicao(ds.pessoa); return; }
+    if (action === 'editar_dados') { abrirEditarDados(ds.pessoa); return; }
     if (action === 'resetar_senha') {
       if (!ds.conta) return;
       if (!confirm('Gerar uma nova senha temporária para ' + ds.nome + ' e enviar por e-mail (' + ds.email + ')?')) return;
@@ -1754,6 +1788,74 @@
   document.getElementById('edit-modal-cancel').addEventListener('click', fecharEdicao);
   editModal.addEventListener('click', function(e){ if (e.target === editModal) fecharEdicao(); });
 
+  // ---------------- MODAL: EDITAR DADOS (cargo, área, gestor imediato) ----------------
+  var dadosPessoaModal = document.getElementById('dados-pessoa-modal');
+  var dadosPessoaId = null;
+  function descendentesDe(pessoaId){
+    var filhos = {};
+    (gestaoDados.pessoas || []).forEach(function(x){ if (x.gestor_imediato_id) (filhos[x.gestor_imediato_id] = filhos[x.gestor_imediato_id] || []).push(x.id); });
+    var out = {}; var pilha = (filhos[pessoaId] || []).slice();
+    while (pilha.length) { var a = pilha.pop(); if (out[a]) continue; out[a] = true; (filhos[a] || []).forEach(function(f){ pilha.push(f); }); }
+    return out;
+  }
+  function abrirEditarDados(pessoaId){
+    var p = (gestaoDados.pessoas || []).find(function(x){ return x.id === pessoaId; });
+    if (!p) return;
+    dadosPessoaId = pessoaId;
+    var acessoTotal = !!(gestaoDados.caller && gestaoDados.caller.acesso_total);
+    document.getElementById('dados-pessoa-nome').textContent = p.nome;
+    document.getElementById('dados-pessoa-cargo').value = p.cargo || '';
+    // Área: acesso total vê todas; Admin de Área só a dele (mais a atual da pessoa, pra não perder o valor)
+    var areas = (gestaoDados.centros_custo || []).slice();
+    var atual = p.centro_custo ? String(p.centro_custo).trim().toUpperCase() : '';
+    if (atual && areas.indexOf(atual) === -1) areas.push(atual);
+    var selArea = document.getElementById('dados-pessoa-area');
+    selArea.innerHTML = (atual ? '' : '<option value="">Selecione a área</option>') + areas.map(function(c){
+      return '<option value="' + escapeHtml(c) + '">' + escapeHtml(capitalizarCentroCusto(c)) + '</option>';
+    }).join('');
+    selArea.value = atual;
+    // Gestor: marcados como gestor (no que o admin enxerga) + ele mesmo + o gestor atual; nunca a própria pessoa nem quem está abaixo dela
+    var abaixo = descendentesDe(pessoaId);
+    var abaixoDeMim2 = acessoTotal ? null : descendentesDe(estadoUsuario.pessoaId);
+    var gestores = (gestaoDados.pessoas || []).filter(function(g){
+      if (g.id === pessoaId || abaixo[g.id] || g.acesso_bloqueado) return false;
+      if (abaixoDeMim2 && g.id !== p.gestor_imediato_id && g.id !== estadoUsuario.pessoaId && !abaixoDeMim2[g.id]) return false; // Admin de Área: só a própria linha (mais o gestor atual, pra não perder o valor)
+      if (!acessoTotal && g.permissao_gestao && g.id !== p.gestor_imediato_id) return false;
+      return g.gestor || g.id === estadoUsuario.pessoaId || g.id === p.gestor_imediato_id;
+    }).sort(function(a, b){ return a.nome.localeCompare(b.nome, 'pt-BR'); });
+    var selG = document.getElementById('dados-pessoa-gestor-imediato');
+    selG.innerHTML = (acessoTotal ? '<option value="">Sem gestor (topo da hierarquia)</option>' : '') + gestores.map(function(g){
+      return '<option value="' + g.id + '">' + escapeHtml(g.nome) + (g.cargo ? ' — ' + escapeHtml(capitalizarCargo(g.cargo)) : '') + '</option>';
+    }).join('');
+    selG.value = p.gestor_imediato_id || '';
+    document.getElementById('dados-pessoa-gestor-obrig').hidden = acessoTotal;
+    document.getElementById('dados-pessoa-eh-gestor').checked = !!p.gestor;
+    dadosPessoaModal.hidden = false;
+  }
+  function fecharEditarDados(){ dadosPessoaModal.hidden = true; dadosPessoaId = null; }
+  document.getElementById('dados-pessoa-close').addEventListener('click', fecharEditarDados);
+  document.getElementById('dados-pessoa-cancel').addEventListener('click', fecharEditarDados);
+  dadosPessoaModal.addEventListener('click', function(e){ if (e.target === dadosPessoaModal) fecharEditarDados(); });
+  document.getElementById('dados-pessoa-save').addEventListener('click', function(){
+    var area = document.getElementById('dados-pessoa-area').value;
+    if (!area) { toast('Selecione a área.'); return; }
+    var btn = document.getElementById('dados-pessoa-save');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    chamarHub({
+      action: 'editar_pessoa', pessoa_id: dadosPessoaId,
+      cargo: document.getElementById('dados-pessoa-cargo').value.trim(),
+      centro_custo: area,
+      gestor_imediato_id: document.getElementById('dados-pessoa-gestor-imediato').value,
+      gestor: document.getElementById('dados-pessoa-eh-gestor').checked
+    }).then(function(res){
+      btn.disabled = false; btn.textContent = 'Salvar';
+      if (!res.ok) { toast('Erro ao salvar: ' + (res.data.error || '')); return; }
+      toast('Dados atualizados.');
+      fecharEditarDados();
+      carregarGestaoUsuarios();
+    });
+  });
+
   // ---------------- MODAL: ADICIONAR PESSOA (cadastro no diretório, sem login) ----------------
   var addPessoaModal = document.getElementById('add-pessoa-modal');
   function preencherFormAddPessoa(){
@@ -1779,7 +1881,9 @@
     // Gestores: quem tem a marca "gestor" (dentro do que o caller enxerga) + o próprio caller.
     // Quem não tem acesso total só escolhe alguém da própria linha -- o servidor confere de novo.
     var acessoTotal = !!(dados.caller && dados.caller.acesso_total);
+    var abaixoDeMim = acessoTotal ? null : descendentesDe(estadoUsuario.pessoaId);
     var gestores = (dados.pessoas || []).filter(function(g){
+      if (abaixoDeMim && g.id !== estadoUsuario.pessoaId && !abaixoDeMim[g.id]) return false; // Admin de Área: só a própria linha
       return !g.acesso_bloqueado && !g.permissao_gestao && (g.gestor || g.id === estadoUsuario.pessoaId);
     }).sort(function(a, b){ return a.nome.localeCompare(b.nome, 'pt-BR'); });
     var selGestor = document.getElementById('add-pessoa-gestor-imediato');
