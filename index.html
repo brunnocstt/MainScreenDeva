@@ -1013,6 +1013,13 @@
       if (res.error) {
         loginError.textContent = 'E-mail ou senha incorretos.';
         loginError.hidden = false;
+        // O bloqueio apaga o login, então o erro é o mesmo de senha errada:
+        // pergunta ao servidor se o e-mail é de uma conta suspensa.
+        chamarForgot({ action: 'check_status', email: email }).then(function(r){
+          if (r.ok && r.data && r.data.suspenso) {
+            loginError.textContent = 'Sua conta está suspensa, entre em contato com o administrador.';
+          }
+        }).catch(function(){});
       }
       // sucesso: onAuthStateChange cuida da troca de tela
     });
