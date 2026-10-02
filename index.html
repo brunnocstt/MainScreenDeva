@@ -276,7 +276,8 @@
   table.pessoas tbody tr{ border-top:1px solid var(--line-soft); }
   table.pessoas tbody tr:hover{ background:var(--surface-2); }
   table.pessoas tbody td{ padding:10px 12px; color:var(--ink-soft); vertical-align:middle; overflow:hidden; }
-  .gestao-user{ display:flex; align-items:center; gap:8px; min-width:0; }
+  .gestao-user{ display:flex; align-items:center; gap:8px; min-width:0; cursor:pointer; }
+  .gestao-user:hover .name{ color:var(--accent); text-decoration:underline; }
   .gestao-user .name{ font-size:.83rem; font-weight:700; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .gestao-user .email{ font-size:.71rem; color:var(--muted-2); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .gestao-cargo{ font-size:.76rem; color:var(--muted); line-height:1.35; }
@@ -623,7 +624,7 @@
             <div class="gestao-table-card">
               <div class="table-wrap">
                 <table class="pessoas">
-                  <thead><tr><th>Usuário</th><th>Filial</th><th>Status</th><th>Acesso a apps</th><th>Ações</th></tr></thead>
+                  <thead><tr><th>Usuário</th><th>Matrícula</th><th>Cargo</th><th>Centro de custo</th><th>Acesso a apps</th><th>Ações</th></tr></thead>
                   <tbody id="pessoas-tbody"></tbody>
                 </table>
               </div>
@@ -1426,7 +1427,7 @@
     var q = estadoGestao.busca.trim().toLowerCase();
     return gestaoDados.pessoas.filter(function(p){
       if (estadoGestao.filial && p.filial_id !== estadoGestao.filial) return false;
-      if (q && (p.nome + ' ' + (p.email || '')).toLowerCase().indexOf(q) === -1) return false;
+      if (q && [p.nome, p.email, p.matricula, p.cargo, p.centro_custo].join(' ').toLowerCase().indexOf(q) === -1) return false;
       return true;
     });
   }
@@ -1445,7 +1446,7 @@
       btn.addEventListener('click', function(){ estadoGestao.aba = btn.getAttribute('data-aba'); renderGestao(); });
     });
     var exibida = estadoGestao.aba === 'inativos' ? inativos : ativos;
-    document.getElementById('gestao-sub').textContent = gestaoDados.pessoas.length + ' pessoa(s) cadastrada(s) — ' + gestaoDados.contas.length + ' com login';
+    document.getElementById('gestao-sub').textContent = gestaoDados.pessoas.length + ' pessoa(s) cadastrada(s)';
 
     var tbody = document.getElementById('pessoas-tbody');
     tbody.innerHTML = exibida.map(linhaHtml).join('');
@@ -1455,20 +1456,17 @@
     Array.prototype.forEach.call(tbody.querySelectorAll('[data-action]'), function(btn){
       btn.addEventListener('click', function(){ onAcao(btn.getAttribute('data-action'), btn.dataset); });
     });
+    // nome da pessoa é clicável (abre a edição) -- Enter/Espaço também, pra teclado
+    Array.prototype.forEach.call(tbody.querySelectorAll('.gestao-user'), function(el){
+      el.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAcao('editar', el.dataset); }
+      });
+    });
   }
 
   function linhaHtml(p){
     var conta = contaDaPessoa(p.id);
     var email = p.email ? escapeHtml(p.email) : '<span style="color:var(--muted-2)">sem e-mail</span>';
-
-    var statusCell;
-    if (p.acesso_bloqueado) {
-      statusCell = '<span class="badge-bloqueado">Bloqueado</span>';
-    } else if (!conta) {
-      statusCell = '<span style="font-size:.72rem;color:var(--muted-2);">sem login</span>';
-    } else {
-      statusCell = '<span style="font-size:.72rem;color:var(--good);font-weight:700;">Com login</span>';
-    }
 
     // Coluna de acesso é só leitura -- editar (marcar/desmarcar app) acontece
     // dentro do modal "Editar acesso", não clicando pill por pill na linha.
@@ -1482,24 +1480,12 @@
       ? '<span style="font-size:.76rem;color:var(--ink-soft);">' + escapeHtml(appsComAcesso.join(', ')) + '</span>'
       : '<span style="font-size:.76rem;color:var(--muted-2);">nenhum</span>';
 
-    // Só a quantidade na célula -- passar o mouse abre um popover próprio
-    // (não o title feio do navegador) com a lista de filiais.
-    var filiaisIds = filiaisDaPessoa(p.id);
-    var totalFiliais = (gestaoDados.filiais || []).length;
-    var filialCell;
-    if (!filiaisIds.length) {
-      filialCell = '<span style="font-size:.76rem;color:var(--muted-2);">nenhuma</span>';
-    } else {
-      var qtdLabel = filiaisIds.length + (filiaisIds.length === 1 ? ' filial' : ' filiais');
-      var tipData = escapeHtml(JSON.stringify({
-        nomes: filiaisIds.map(nomeFilial),
-        todas: !!(totalFiliais && filiaisIds.length === totalFiliais)
-      }));
-      filialCell = '<span class="filial-hover" data-tip="' + tipData + '" style="font-size:.76rem;color:var(--ink-soft);border-bottom:1px dotted var(--muted-2);cursor:default;">' + qtdLabel + '</span>';
-    }
-    var tdTitleFilial = p.cargo ? ' title="' + escapeHtml(p.cargo) + '"' : '';
+    function celula(v){ return v ? escapeHtml(v) : '<span style="color:var(--muted-2)">—</span>'; }
+    var matriculaCell = celula(p.matricula);
+    var cargoCell = celula(p.cargo ? capitalizarCargo(p.cargo) : '');
+    var centroCell = celula(p.centro_custo);
 
-    var acoesHtml = '<button data-action="editar" data-pessoa="' + p.id + '" title="Editar acesso"><svg width="13" height="13"><use href="#i-pencil"/></svg></button>';
+    var acoesHtml = '';
     var podeResetar = !!conta && !!p.email;
     acoesHtml += '<button data-action="resetar_senha" data-conta="' + (conta ? conta.id : '') + '" data-email="' + escapeHtml(p.email || '') + '" data-nome="' + escapeHtml(p.nome) + '" title="' + (podeResetar ? 'Redefinir senha' : 'Sem login ainda') + '"' + (podeResetar ? '' : ' disabled') + '><svg width="13" height="13"><use href="#i-key"/></svg></button>';
     if (p.acesso_bloqueado) {
@@ -1509,12 +1495,13 @@
     }
 
     return '<tr>' +
-      '<td><div class="gestao-user">' +
+      '<td><div class="gestao-user" data-action="editar" data-pessoa="' + p.id + '" role="button" tabindex="0" title="Editar acesso">' +
         avatarSpanHtml(p, 'width:32px;height:32px;font-size:.7rem;') +
         '<div><div class="name">' + escapeHtml(p.nome) + '</div><div class="email">' + email + '</div></div>' +
       '</div></td>' +
-      '<td class="gestao-cargo"' + tdTitleFilial + '>' + filialCell + '</td>' +
-      '<td>' + statusCell + '</td>' +
+      '<td class="gestao-cargo">' + matriculaCell + '</td>' +
+      '<td class="gestao-cargo">' + cargoCell + '</td>' +
+      '<td class="gestao-cargo">' + centroCell + '</td>' +
       '<td>' + acessoCell + '</td>' +
       '<td><div class="gestao-actions">' + acoesHtml + '</div></td>' +
     '</tr>';
