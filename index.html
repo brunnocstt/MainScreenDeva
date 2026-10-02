@@ -1351,7 +1351,11 @@
     var appDef = APPS.find(function(a){ return a.id === appKey; });
     var chave = (appDef && appDef.generico) ? pessoaId : contaId;
     if (!chave) return null;
-    return lista.find(function(a){ return a.id === chave; }) || null;
+    var acesso = lista.find(function(a){ return a.id === chave; }) || null;
+    // PM revoga por desativação (is_active=false), a linha continua existindo
+    // -- linha inativa não conta como acesso.
+    if (acesso && acesso.ativo === false) return null;
+    return acesso;
   }
   function filiaisDaPessoa(pessoaId){
     return (gestaoDados.pessoa_filiais || [])
