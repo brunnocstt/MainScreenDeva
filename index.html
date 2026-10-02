@@ -318,6 +318,19 @@
   .status-pill.warn{ background:var(--warn-soft); color:var(--warn); }
   .status-pill.neutral{ background:var(--neutral-status-soft); color:var(--neutral-status); }
   .app-note{ font-size:.76rem; color:var(--muted); }
+  .apps-adm-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(340px,1fr)); gap:18px; }
+  .apps-adm-card{ background:var(--surface); border:1px solid var(--line-soft); border-radius:24px; padding:20px; display:flex; flex-direction:column; gap:10px; box-shadow:var(--shadow-card, none); }
+  .apps-adm-card h3{ margin:0; font-size:1rem; font-weight:800; }
+  .apps-adm-card .meta{ font-size:.76rem; color:var(--muted); line-height:1.6; word-break:break-all; }
+  .apps-adm-card .meta a{ color:var(--accent); text-decoration:none; }
+  .apps-adm-acoes{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+  .apps-adm-acoes .btn{ padding:8px 14px; font-size:.78rem; }
+  .chave-row{ border:1px solid var(--line-soft); border-radius:16px; padding:10px 12px; display:flex; flex-direction:column; gap:6px; }
+  .chave-row .nome{ font-size:.78rem; font-weight:800; }
+  .chave-row .valor{ font-family:ui-monospace, Menlo, Consolas, monospace; font-size:.72rem; word-break:break-all; color:var(--ink-soft); }
+  .chave-row .botoes{ display:flex; gap:6px; }
+  .chave-row .botoes button{ all:unset; cursor:pointer; font-size:.72rem; font-weight:700; color:var(--accent); padding:2px 8px; border-radius:10px; }
+  .chave-row .botoes button:hover{ background:var(--surface-2); }
   [hidden]{ display:none !important; }
   @media (max-width:600px){ .sidebar.is-expanded{ width:220px; } main.content{ padding:24px 18px 48px; } }
 
@@ -401,6 +414,7 @@
     <symbol id="i-user-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 11 2 2 4-4"/><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></g></symbol>
     <symbol id="i-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g></symbol>
     <symbol id="i-settings" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></g></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></g></symbol>
     <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></g></symbol>
     <symbol id="i-power" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></g></symbol>
     <symbol id="i-x" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></g></symbol>
@@ -582,6 +596,11 @@
         <span class="nav-icon"><svg width="17" height="17"><use href="#i-grid"/></svg></span>
         <span class="nav-label">Hub de apps</span>
       </button>
+      <button type="button" class="nav-btn" id="nav-apps" title="Gestão de apps" hidden>
+        <span class="nav-bar"></span>
+        <span class="nav-icon"><svg width="17" height="17"><use href="#i-key"/></svg></span>
+        <span class="nav-label">Gestão de apps</span>
+      </button>
       <button type="button" class="nav-btn" id="nav-config" title="Configurações" hidden>
         <span class="nav-bar"></span>
         <span class="nav-icon"><svg width="17" height="17"><use href="#i-settings"/></svg></span>
@@ -605,6 +624,15 @@
         <div class="page-head"><h1>Seus aplicativos</h1><p class="sub">Acesso centralizado aos sistemas internos da Deva.</p></div>
         <div class="app-grid" id="app-grid"></div>
       </div>
+    </div>
+
+    <div id="view-apps" hidden>
+      <div class="page-head"><h1>Gestão de apps</h1><p class="sub">Catálogo dos aplicativos e acesso às chaves. Visível só para proprietário e co-proprietário.</p></div>
+      <div class="modal-note" id="apps-codigo-aviso" hidden style="margin-bottom:16px;">
+        Você ainda não tem o <strong>código de acesso</strong> às chaves. Ele é enviado só por e-mail e é pedido toda vez que você abrir as chaves de um app.
+        <button type="button" class="btn btn-primary" id="apps-codigo-pedir-aviso" style="margin-left:8px;padding:8px 14px;font-size:.78rem;">Enviar código por e-mail</button>
+      </div>
+      <div class="apps-adm-grid" id="apps-adm-grid"></div>
     </div>
 
     <div id="view-config" hidden>
@@ -795,6 +823,32 @@
 <!-- modal: adicionar pessoa nova ao diretório (RH ainda não sincronizou, ou é
      terceirizado). Só cadastra nome/e-mail/cargo/filial -- não cria login;
      pra dar acesso, depois de salvar aqui, usa o "Editar acesso" normal. -->
+<div class="modal-overlay" id="apps-codigo-modal" hidden>
+  <div class="modal-card">
+   <div class="modal-card-scroll">
+    <div class="modal-head"><h2>Código de acesso</h2><button type="button" class="modal-close" id="apps-codigo-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <p class="modal-note" id="apps-codigo-app" style="font-weight:700;color:var(--ink);"></p>
+    <p class="modal-note">Digite o código <strong>xxxx-xxxx-xxxx-xxxx</strong> que foi enviado ao seu e-mail para ver as chaves deste app.</p>
+    <div class="field"><input type="text" id="apps-codigo-input" autocomplete="off" spellcheck="false" placeholder="xxxx-xxxx-xxxx-xxxx" maxlength="19" style="font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:1px;"></div>
+    <p class="modal-note" id="apps-codigo-erro" style="color:#B91C1C;" hidden></p>
+    <div class="modal-actions" style="flex-wrap:wrap;">
+      <button type="button" class="btn btn-ghost" id="apps-codigo-novo">Não tenho / perdi o código</button>
+      <button type="button" class="btn btn-primary" id="apps-codigo-ok">Ver chaves</button>
+    </div>
+   </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="apps-chaves-modal" hidden>
+  <div class="modal-card" style="max-width:680px;">
+   <div class="modal-card-scroll">
+    <div class="modal-head"><h2 id="apps-chaves-titulo">Chaves</h2><button type="button" class="modal-close" id="apps-chaves-close"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <p class="modal-note" id="apps-chaves-aviso">Por segurança, esta janela fecha sozinha em <strong id="apps-chaves-contagem">60</strong>s e nada fica guardado na tela.</p>
+    <div id="apps-chaves-corpo" style="display:flex;flex-direction:column;gap:10px;"></div>
+   </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="dados-pessoa-modal" hidden>
   <div class="modal-card">
    <div class="modal-card-scroll">
@@ -1341,6 +1395,7 @@
         aplicarAvatar(document.getElementById('user-avatar'), pessoaNome, avatarUrl);
 
         document.getElementById('nav-config').hidden = !hubAdmin;
+        document.getElementById('nav-apps').hidden = (papelHub !== 'proprietario' && papelHub !== 'co_proprietario');
 
         renderAppGrid(uid);
         if (hubAdmin) carregarGestaoUsuarios();
@@ -1787,6 +1842,138 @@
   document.getElementById('edit-modal-close').addEventListener('click', fecharEdicao);
   document.getElementById('edit-modal-cancel').addEventListener('click', fecharEdicao);
   editModal.addEventListener('click', function(e){ if (e.target === editModal) fecharEdicao(); });
+
+  // ---------------- GESTÃO DE APPS (só proprietário / co-proprietário) ----------------
+  var APPS_ADM_URL = SUPABASE_URL + '/functions/v1/hub-apps-admin';
+  var appsAdm = { lista: [], appAtual: null, timer: null };
+  function appsAdmChamar(body){
+    return sb.auth.getSession().then(function(sres){
+      return fetch(APPS_ADM_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sres.data.session.access_token },
+        body: JSON.stringify(body)
+      }).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, data: j }; }); });
+    });
+  }
+  function carregarAppsAdmin(){
+    var grid = document.getElementById('apps-adm-grid');
+    grid.innerHTML = '<p class="modal-note" style="grid-column:1/-1;">carregando…</p>';
+    appsAdmChamar({ action: 'listar' }).then(function(res){
+      if (!res.ok) { grid.innerHTML = '<p class="modal-note" style="grid-column:1/-1;color:#B91C1C;">' + escapeHtml(res.data.error || 'Erro ao carregar.') + '</p>'; return; }
+      appsAdm.lista = res.data.apps || [];
+      document.getElementById('apps-codigo-aviso').hidden = !!res.data.codigo_configurado;
+      grid.innerHTML = appsAdm.lista.map(function(a){
+        var meta = [];
+        if (a.url_app) meta.push('<a href="' + escapeHtml(a.url_app) + '" target="_blank" rel="noopener">' + escapeHtml(a.url_app.replace('https://', '')) + '</a>');
+        if (a.supabase_ref) meta.push('Projeto Supabase: <strong>' + escapeHtml(a.supabase_ref) + '</strong>' + (a.conta_supabase ? ' (conta ' + escapeHtml(a.conta_supabase) + ')' : ''));
+        else meta.push('Sem projeto Supabase ainda');
+        if (a.repo) meta.push('<a href="' + escapeHtml(a.repo) + '" target="_blank" rel="noopener">Repositório</a>');
+        var acoes = '';
+        if (a.url_app) acoes += '<a class="btn btn-ghost" href="' + escapeHtml(a.url_app) + '" target="_blank" rel="noopener">Abrir app</a>';
+        if (a.supabase_ref) {
+          acoes += '<a class="btn btn-ghost" href="https://supabase.com/dashboard/project/' + escapeHtml(a.supabase_ref) + '" target="_blank" rel="noopener">Abrir no Supabase</a>';
+          acoes += '<button type="button" class="btn btn-primary" data-ver-chaves="' + escapeHtml(a.id) + '"><svg width="13" height="13"><use href="#i-key"/></svg> Ver chaves</button>';
+        }
+        return '<div class="apps-adm-card"><h3>' + escapeHtml(a.nome) + '</h3><div class="meta">' + meta.join('<br>') + '</div><div class="apps-adm-acoes">' + acoes + '</div></div>';
+      }).join('');
+      Array.prototype.forEach.call(grid.querySelectorAll('[data-ver-chaves]'), function(b){
+        b.addEventListener('click', function(){ abrirCodigoApps(b.getAttribute('data-ver-chaves')); });
+      });
+    });
+  }
+  function pedirNovoCodigoApps(){
+    appsAdmChamar({ action: 'novo_codigo' }).then(function(res){
+      if (!res.ok) { toast(res.data.error || 'Não foi possível enviar o código.'); return; }
+      toast('Código enviado para ' + res.data.email + '. Confira a caixa de entrada.');
+      carregarAppsAdmin();
+    });
+  }
+  document.getElementById('apps-codigo-pedir-aviso').addEventListener('click', pedirNovoCodigoApps);
+  document.getElementById('apps-codigo-novo').addEventListener('click', pedirNovoCodigoApps);
+
+  var appsCodigoModal = document.getElementById('apps-codigo-modal');
+  function abrirCodigoApps(appId){
+    appsAdm.appAtual = appsAdm.lista.find(function(a){ return a.id === appId; });
+    if (!appsAdm.appAtual) return;
+    document.getElementById('apps-codigo-app').textContent = appsAdm.appAtual.nome;
+    document.getElementById('apps-codigo-input').value = '';
+    document.getElementById('apps-codigo-erro').hidden = true;
+    appsCodigoModal.hidden = false;
+    document.getElementById('apps-codigo-input').focus();
+  }
+  function fecharCodigoApps(){ appsCodigoModal.hidden = true; document.getElementById('apps-codigo-input').value = ''; }
+  document.getElementById('apps-codigo-close').addEventListener('click', fecharCodigoApps);
+  appsCodigoModal.addEventListener('click', function(e){ if (e.target === appsCodigoModal) fecharCodigoApps(); });
+  document.getElementById('apps-codigo-input').addEventListener('input', function(){
+    // aceita só letras e mostra no formato xxxx-xxxx-xxxx-xxxx
+    var l = this.value.toLowerCase().replace(/[^a-z]/g, '').slice(0, 16);
+    this.value = (l.match(/.{1,4}/g) || []).join('-');
+  });
+  document.getElementById('apps-codigo-input').addEventListener('keydown', function(e){ if (e.key === 'Enter') document.getElementById('apps-codigo-ok').click(); });
+  document.getElementById('apps-codigo-ok').addEventListener('click', function(){
+    var cod = document.getElementById('apps-codigo-input').value;
+    var erro = document.getElementById('apps-codigo-erro');
+    if (cod.replace(/-/g, '').length !== 16) { erro.textContent = 'Digite as 16 letras do código.'; erro.hidden = false; return; }
+    var btn = this; btn.disabled = true; btn.textContent = 'Verificando…';
+    appsAdmChamar({ action: 'chaves', id: appsAdm.appAtual.id, codigo: cod }).then(function(res){
+      btn.disabled = false; btn.textContent = 'Ver chaves';
+      if (!res.ok) { erro.textContent = res.data.error || 'Não foi possível abrir as chaves.'; erro.hidden = false; return; }
+      fecharCodigoApps();
+      mostrarChavesApps(appsAdm.appAtual, res.data);
+    });
+  });
+
+  var appsChavesModal = document.getElementById('apps-chaves-modal');
+  function fecharChavesApps(){
+    appsChavesModal.hidden = true;
+    document.getElementById('apps-chaves-corpo').innerHTML = ''; // nada fica na tela
+    if (appsAdm.timer) { clearInterval(appsAdm.timer); appsAdm.timer = null; }
+  }
+  document.getElementById('apps-chaves-close').addEventListener('click', fecharChavesApps);
+  appsChavesModal.addEventListener('click', function(e){ if (e.target === appsChavesModal) fecharChavesApps(); });
+  function copiarTexto(t, rotulo){
+    navigator.clipboard.writeText(t).then(function(){ toast(rotulo + ' copiado.'); }, function(){ toast('Não foi possível copiar.'); });
+  }
+  function mostrarChavesApps(app, d){
+    document.getElementById('apps-chaves-titulo').textContent = 'Chaves — ' + app.nome;
+    var corpo = document.getElementById('apps-chaves-corpo');
+    var linhas = [];
+    var valores = {};
+    function linha(id, nome, valor, secreto){
+      valores[id] = valor;
+      return '<div class="chave-row"><div class="nome">' + escapeHtml(nome) + '</div>' +
+        '<div class="valor" id="v-' + id + '">' + (secreto ? '•••••••••••••••••••••••• (oculto)' : escapeHtml(valor)) + '</div>' +
+        '<div class="botoes">' + (secreto ? '<button type="button" data-mostrar="' + id + '">Mostrar</button>' : '') +
+        '<button type="button" data-copiar="' + id + '" data-rotulo="' + escapeHtml(nome) + '">Copiar</button></div></div>';
+    }
+    linhas.push(linha('url', 'URL do projeto', d.projeto.url, false));
+    (d.chaves || []).forEach(function(c, i){
+      var secreta = /service/i.test(c.nome) || c.tipo === 'secret';
+      linhas.push(linha('k' + i, 'Chave ' + c.nome + (c.tipo ? ' (' + c.tipo + ')' : ''), c.valor, secreta));
+    });
+    var extra = '';
+    if (d.segredos && d.segredos.length) extra += '<div class="chave-row"><div class="nome">Segredos das Edge Functions (só os nomes)</div><div class="valor">' + d.segredos.map(escapeHtml).join(', ') + '</div></div>';
+    if (d.funcoes && d.funcoes.length) extra += '<div class="chave-row"><div class="nome">Edge Functions</div><div class="valor">' + d.funcoes.map(function(f){ return escapeHtml(f.slug) + ' (v' + f.versao + (f.verify_jwt ? '' : ', pública') + ')'; }).join('<br>') + '</div></div>';
+    corpo.innerHTML = linhas.join('') + extra;
+    Array.prototype.forEach.call(corpo.querySelectorAll('[data-mostrar]'), function(b){
+      b.addEventListener('click', function(){
+        var id = b.getAttribute('data-mostrar'), el = document.getElementById('v-' + id);
+        var oculto = b.textContent === 'Mostrar';
+        el.textContent = oculto ? valores[id] : '•••••••••••••••••••••••• (oculto)';
+        b.textContent = oculto ? 'Ocultar' : 'Mostrar';
+      });
+    });
+    Array.prototype.forEach.call(corpo.querySelectorAll('[data-copiar]'), function(b){
+      b.addEventListener('click', function(){ copiarTexto(valores[b.getAttribute('data-copiar')], b.getAttribute('data-rotulo')); });
+    });
+    var resta = 60; document.getElementById('apps-chaves-contagem').textContent = resta;
+    if (appsAdm.timer) clearInterval(appsAdm.timer);
+    appsAdm.timer = setInterval(function(){
+      resta -= 1; document.getElementById('apps-chaves-contagem').textContent = resta;
+      if (resta <= 0) fecharChavesApps();
+    }, 1000);
+    appsChavesModal.hidden = false;
+  }
 
   // ---------------- MODAL: EDITAR DADOS (cargo, área, gestor imediato) ----------------
   var dadosPessoaModal = document.getElementById('dados-pessoa-modal');
@@ -2509,15 +2696,21 @@
   var navConfig = document.getElementById('nav-config');
   var viewHub = document.getElementById('view-hub');
   var viewConfig = document.getElementById('view-config');
+  var navApps = document.getElementById('nav-apps');
+  var viewApps = document.getElementById('view-apps');
   function selectView(view){
     viewHub.hidden = (view !== 'hub');
     viewConfig.hidden = (view !== 'config');
+    viewApps.hidden = (view !== 'apps');
+    navApps.classList.toggle('is-active', view === 'apps');
+    if (view === 'apps') carregarAppsAdmin();
     navHub.classList.toggle('is-active', view === 'hub');
     navConfig.classList.toggle('is-active', view === 'config');
     sidebar.classList.remove('is-expanded');
   }
   navHub.addEventListener('click', function(){ selectView('hub'); });
   navConfig.addEventListener('click', function(){ selectView('config'); });
+  navApps.addEventListener('click', function(){ selectView('apps'); });
 
   // O organograma agora é uma sub-aba de dentro da Gestão de Usuários (não é
   // mais uma visão separada no menu lateral) -- mesmo padrão de abas que já
