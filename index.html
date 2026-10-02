@@ -942,6 +942,20 @@
     };
     img.src = avatarUrl;
   }
+  // Avatar de OUTRA pessoa em listas/organograma: o HTML nasce com as iniciais
+  // (data-avatar-*) e hidratarAvatares() troca pela foto central (pessoas.avatar_url)
+  // depois que a lista entra no DOM -- a foto é a mesma pra todo mundo que enxerga a pessoa.
+  function avatarSpanHtml(pessoa, estilo){
+    return '<span class="avatar" data-avatar-nome="' + escapeHtml(pessoa.nome || '') + '"' +
+      (pessoa.avatar_url ? ' data-avatar-url="' + escapeHtml(pessoa.avatar_url) + '"' : '') +
+      ' style="' + (estilo || '') + 'background:' + corAvatar(pessoa.nome) + '">' + iniciais(pessoa.nome) + '</span>';
+  }
+  function hidratarAvatares(raiz){
+    if (!raiz) return;
+    raiz.querySelectorAll('[data-avatar-url]').forEach(function(el){
+      aplicarAvatar(el, el.getAttribute('data-avatar-nome'), el.getAttribute('data-avatar-url'));
+    });
+  }
   function toast(msg){
     var el = document.createElement('div');
     el.className = 'toast';
@@ -1435,6 +1449,7 @@
 
     var tbody = document.getElementById('pessoas-tbody');
     tbody.innerHTML = exibida.map(linhaHtml).join('');
+    hidratarAvatares(tbody);
     document.getElementById('pessoas-foot').textContent = exibida.length + ' exibido(s)';
 
     Array.prototype.forEach.call(tbody.querySelectorAll('[data-action]'), function(btn){
@@ -1495,7 +1510,7 @@
 
     return '<tr>' +
       '<td><div class="gestao-user">' +
-        '<span class="avatar" style="width:32px;height:32px;font-size:.7rem;background:' + corAvatar(p.nome) + '">' + iniciais(p.nome) + '</span>' +
+        avatarSpanHtml(p, 'width:32px;height:32px;font-size:.7rem;') +
         '<div><div class="name">' + escapeHtml(p.nome) + '</div><div class="email">' + email + '</div></div>' +
       '</div></td>' +
       '<td class="gestao-cargo"' + tdTitleFilial + '>' + filialCell + '</td>' +
@@ -1614,8 +1629,7 @@
     pessoaEmEdicaoId = pessoaId;
     var conta = contaDaPessoa(p.id);
 
-    document.getElementById('edit-modal-avatar').textContent = iniciais(p.nome);
-    document.getElementById('edit-modal-avatar').style.background = corAvatar(p.nome);
+    aplicarAvatar(document.getElementById('edit-modal-avatar'), p.nome, p.avatar_url);
     document.getElementById('edit-modal-nome').textContent = p.nome;
     document.getElementById('edit-modal-email').textContent = p.email || 'sem e-mail cadastrado';
 
@@ -2165,7 +2179,7 @@
       }
       return '<div class="' + classes + '"' + (temFilhos && opts.clicavel ? ' data-foco-pessoa="' + pessoa.id + '"' : '') + '>' +
         (podeMover(pessoa) ? '<button type="button" class="org-node-mover" title="Mover pra outro gestor" data-mover-pessoa="' + pessoa.id + '"><svg width="12" height="12"><use href="#i-pencil"/></svg></button>' : '') +
-        '<span class="avatar" style="background:' + corAvatar(pessoa.nome) + '">' + iniciais(pessoa.nome) + '</span>' +
+        avatarSpanHtml(pessoa, '') +
         '<div class="org-node-info"><div class="nome">' + escapeHtml(pessoa.nome) + '</div>' +
           '<div class="cargo">' + escapeHtml(capitalizarCargo(pessoa.cargo)) + '</div></div>' +
         badge +
@@ -2240,6 +2254,7 @@
         '<div class="org-tree-soltos">' + soltasVisiveis.map(function(p){ return '<ul class="org-chart">' + nodeHtml(p) + '</ul>'; }).join('') + '</div>';
     }
     tree.innerHTML = html;
+    hidratarAvatares(tree);
 
     Array.prototype.forEach.call(tree.querySelectorAll('[data-mover-pessoa]'), function(btn){
       btn.addEventListener('click', function(e){ e.stopPropagation(); abrirMoverModal(btn.getAttribute('data-mover-pessoa')); });
