@@ -1021,7 +1021,7 @@
     { id:'padroes', icon:'i-clipboard', name:'Auditorias de Padrões',
       url:'https://padroesdeva.albusdata.com.br', schema:null },
     { id:'rh', icon:'i-users', name:'Gestão de RH',
-      url:'https://rhdeva.albusdata.com.br', schema:null, sempreVisivel:true }
+      url:'https://gestaorhdeva.albusdata.com.br', generico:true }
   ];
 
   function escapeHtml(s){
@@ -1694,6 +1694,11 @@
       { value: 'usuario', label: 'Usuário' },
       { value: 'admin_area', label: 'Administrador de Área' },
       { value: 'admin_geral', label: 'Administrador Geral' }
+    ],
+    rh: [
+      { value: 'leitor', label: 'Leitura' },
+      { value: 'editor', label: 'Editor' },
+      { value: 'admin', label: 'Administrador' }
     ]
   };
   // Papel funcional e equipe do PM -- não são "nível de acesso", mas também
